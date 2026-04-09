@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<checkstyle version="9.3">
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\BingoChatApplication.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\controller\AuthenticationController.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\controller\MessageController.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\controller\UserController.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\dto\request\MessageRequestDto.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\dto\request\UserLoginRequestDto.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\dto\request\UserRegistrationRequestDto.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\dto\response\MessageResponseDto.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\dto\response\UserLoginResponseDto.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\dto\response\UserProfileResponseDto.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\dto\response\UserRegistrationResponseDto.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\dto\response\UserSearchResponseDto.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\entity\Chat.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\entity\Message.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\entity\Role.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\entity\status\ChatType.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\entity\status\MessageStatus.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\entity\status\RoleName.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\entity\User.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\exception\AuthenticationException.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\exception\ChatNotFoundException.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\exception\ExpiredJwtException.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\exception\ForbiddenActionException.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\exception\JwtException.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\exception\MessageNotFoundException.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\exception\RegistrationException.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\exception\UserRoleNotFoundException.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\global\CustomGlobalExceptionHandler.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\global\GlobalExceptionHandler.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\mapper\MessageMapper.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\mapper\UserMapper.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\repository\ChatRepository.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\repository\MessageRepository.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\repository\RoleRepository.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\repository\UserRepository.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\security\CurrentUserProvider.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\security\CustomUserDetailsService.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\security\jwt\JwtAuthenticationFilter.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\security\jwt\JwtUtil.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\security\SecurityAccessConfiguration.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\security\SecurityConfiguration.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\security\UserSecurity.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\service\AuthenticationService.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\service\impl\AuthenticationServiceImpl.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\service\impl\MessageServiceImpl.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\service\impl\UserServiceImpl.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\service\MessageService.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\service\UserService.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\validation\AccessValidator.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\validation\PasswordMatch.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\validation\PasswordMatchValidator.java">
+</file>
+</checkstyle>
