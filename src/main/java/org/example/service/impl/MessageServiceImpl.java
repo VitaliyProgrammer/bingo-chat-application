@@ -2,6 +2,7 @@ package org.example.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.example.dto.request.MessageRequestDto;
+import org.example.dto.response.MessagePageResponseDto;
 import org.example.dto.response.MessageResponseDto;
 import org.example.entity.Chat;
 import org.example.entity.Message;
@@ -15,6 +16,10 @@ import org.example.repository.ChatRepository;
 import org.example.repository.MessageRepository;
 import org.example.security.CurrentUserProvider;
 import org.example.service.MessageService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -114,6 +119,25 @@ public class MessageServiceImpl implements MessageService {
         validateMessageOwner(message, user);
 
         messageRepository.delete(message);
+    }
+
+    @Override
+    public MessagePageResponseDto getChatMessages(Long chatId, int page, int size) {
+
+        User currentUser = currentUserProvider.getAuthenticatedUser();
+
+        Chat chat = chatRepository.findById(chatId)
+                .orElseThrow(() -> new ChatNotFoundException("Chat not found!"));
+
+        if (!chat.getParticipants().contains(currentUser)) {
+            throw new ForbiddenActionException("No access to this chat!");
+        }
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+
+        Page<Message> messagePage = messageRepository.findAllByChatId(chatId, pageable);
+
+        return messageMapper.toPageDto(messagePage);
     }
 
     private Message getMessageOrThrow(Long messageId) {

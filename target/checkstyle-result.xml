@@ -2,17 +2,35 @@
 <checkstyle version="9.3">
 <file name="D:\Projects\bingo-chat-application\src\main\java\org\example\BingoChatApplication.java">
 </file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\configuration\WebSocketAuthInterceptor.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\configuration\WebSocketConfiguration.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\configuration\WebSocketSecurityConfiguration.java">
+</file>
 <file name="D:\Projects\bingo-chat-application\src\main\java\org\example\controller\AuthenticationController.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\controller\ChatController.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\controller\ChatWebSocketController.java">
 </file>
 <file name="D:\Projects\bingo-chat-application\src\main\java\org\example\controller\MessageController.java">
 </file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\controller\MessageStatusController.java">
+</file>
 <file name="D:\Projects\bingo-chat-application\src\main\java\org\example\controller\UserController.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\dto\request\ChatRequestDto.java">
 </file>
 <file name="D:\Projects\bingo-chat-application\src\main\java\org\example\dto\request\MessageRequestDto.java">
 </file>
 <file name="D:\Projects\bingo-chat-application\src\main\java\org\example\dto\request\UserLoginRequestDto.java">
 </file>
 <file name="D:\Projects\bingo-chat-application\src\main\java\org\example\dto\request\UserRegistrationRequestDto.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\dto\response\ChatResponseDto.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\dto\response\MessagePageResponseDto.java">
 </file>
 <file name="D:\Projects\bingo-chat-application\src\main\java\org\example\dto\response\MessageResponseDto.java">
 </file>
@@ -52,11 +70,15 @@
 </file>
 <file name="D:\Projects\bingo-chat-application\src\main\java\org\example\exception\RegistrationException.java">
 </file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\exception\UserNotFoundException.java">
+</file>
 <file name="D:\Projects\bingo-chat-application\src\main\java\org\example\exception\UserRoleNotFoundException.java">
 </file>
 <file name="D:\Projects\bingo-chat-application\src\main\java\org\example\global\CustomGlobalExceptionHandler.java">
 </file>
 <file name="D:\Projects\bingo-chat-application\src\main\java\org\example\global\GlobalExceptionHandler.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\mapper\ChatMapper.java">
 </file>
 <file name="D:\Projects\bingo-chat-application\src\main\java\org\example\mapper\MessageMapper.java">
 </file>
@@ -86,7 +108,11 @@
 </file>
 <file name="D:\Projects\bingo-chat-application\src\main\java\org\example\service\AuthenticationService.java">
 </file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\service\ChatService.java">
+</file>
 <file name="D:\Projects\bingo-chat-application\src\main\java\org\example\service\impl\AuthenticationServiceImpl.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\service\impl\ChatServiceImpl.java">
 </file>
 <file name="D:\Projects\bingo-chat-application\src\main\java\org\example\service\impl\MessageServiceImpl.java">
 </file>
