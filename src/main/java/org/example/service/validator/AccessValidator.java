@@ -1,7 +1,7 @@
-package org.example.validation;
+package org.example.service.validator;
 
 import org.example.entity.User;
-import org.example.entity.status.RoleName;
+import org.example.entity.role.RoleName;
 import org.example.exception.ForbiddenActionException;
 
 public class AccessValidator {

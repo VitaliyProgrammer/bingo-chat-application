@@ -7,7 +7,7 @@ import org.example.dto.response.UserLoginResponseDto;
 import org.example.dto.response.UserRegistrationResponseDto;
 import org.example.entity.Role;
 import org.example.entity.User;
-import org.example.entity.status.RoleName;
+import org.example.entity.role.RoleName;
 import org.example.exception.AuthenticationException;
 import org.example.exception.RegistrationException;
 import org.example.exception.UserRoleNotFoundException;

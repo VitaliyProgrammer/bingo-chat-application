@@ -13,7 +13,7 @@ import java.util.HashSet;
 import java.util.Set;
 import lombok.Getter;
 import lombok.Setter;
-import org.example.entity.status.RoleName;
+import org.example.entity.role.RoleName;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 

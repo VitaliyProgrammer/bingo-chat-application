@@ -1,4 +1,4 @@
-package org.example.configuration;
+package org.example.configuration.websocket;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
