@@ -3,6 +3,7 @@ package org.example.controller.websocket;
 import lombok.RequiredArgsConstructor;
 import org.example.dto.request.MessageRequestDto;
 import org.example.dto.response.MessageResponseDto;
+import org.example.dto.response.TypingEventResponseDto;
 import org.example.service.MessageService;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Controller;
 public class ChatWebSocketController {
 
     private final MessageService messageService;
+
     private final SimpMessagingTemplate messagingTemplate;
 
     @MessageMapping("/chat.send")
@@ -24,5 +26,14 @@ public class ChatWebSocketController {
 
         messagingTemplate.convertAndSendToUser(response.senderId().toString(),
                 "/queue/delivery", response);
+
+        messageService.handleUnreadAndNotifyMessages(response);
+    }
+
+    @MessageMapping("/chat.typing")
+    public void senderUserIsTyping(TypingEventResponseDto response) {
+
+        messagingTemplate.convertAndSend("/topic/chat/" + response.chatId() + "/typing",
+                response);
     }
 }

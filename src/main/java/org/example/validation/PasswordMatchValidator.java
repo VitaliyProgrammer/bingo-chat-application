@@ -3,7 +3,6 @@ package org.example.validation;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 import org.example.dto.request.UserRegistrationRequestDto;
-import org.example.validation.PasswordMatch;
 
 public class PasswordMatchValidator
         implements ConstraintValidator<PasswordMatch, UserRegistrationRequestDto> {

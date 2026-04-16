@@ -1,0 +1,28 @@
+package org.example.service;
+
+import java.time.Duration;
+
+public interface RedisService {
+
+    void setValue(String key, String value);
+
+    String getValue(String key);
+
+    void delete(String key);
+
+    boolean existsKey(String key);
+
+    void setUserOnline(Long userId);
+
+    void setUserOnline(Long userId, Duration ttl);
+
+    void setUserOffline(Long userId);
+
+    boolean isUserOnline(Long userId);
+
+    void incrementUnreadMessages(Long userId, Long chatId);
+
+    void resetUnReadMessages(Long userId, Long chatId);
+
+    int getUnreadMessages(Long userId, Long chatId);
+}

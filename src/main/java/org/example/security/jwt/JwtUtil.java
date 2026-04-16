@@ -20,13 +20,17 @@ public class JwtUtil {
     private final Key secret;
     private final long expiration;
 
-    public JwtUtil(@Value("${jwt.secret}") String secretString, @Value("${jwt.expiration}") long expiration) {
+    public JwtUtil(@Value("${jwt.secret}") String secretString,
+                   @Value("${jwt.expiration}") long expiration) {
         this.secret = Keys.hmacShaKeyFor((secretString.getBytes(StandardCharsets.UTF_8)));
         this.expiration = expiration;
     }
 
     public String generateToken(String email, List<String> roles) {
-        return Jwts.builder().setSubject(email).claim("roles", roles).setIssuedAt(new Date((System.currentTimeMillis()))).setExpiration(new Date(System.currentTimeMillis() + expiration)).signWith(secret).compact();
+        return Jwts.builder().setSubject(email).claim("roles", roles)
+                .setIssuedAt(new Date((System.currentTimeMillis())))
+                .setExpiration(new Date(System.currentTimeMillis() + expiration))
+                .signWith(secret).compact();
     }
 
     public String getUsernameFromToken(String token) {
@@ -61,7 +65,11 @@ public class JwtUtil {
     }
 
     private <T> T getClaimFromToken(String token, Function<Claims, T> claimsResolver) {
-        final Claims claims = Jwts.parserBuilder().setSigningKey(secret).build().parseClaimsJws(token).getBody();
+        final Claims claims = Jwts.parserBuilder()
+                .setSigningKey(secret)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
         return claimsResolver.apply(claims);
     }
 }

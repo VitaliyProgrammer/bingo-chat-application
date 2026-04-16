@@ -1,5 +1,6 @@
 package org.example.configuration.redis;
 
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
@@ -14,7 +15,7 @@ public class RedisConfiguration {
         return new LettuceConnectionFactory("localhost", 6379);
     }
 
-
+    @Bean
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
 
         RedisTemplate<String, Object> template = new RedisTemplate<>();
