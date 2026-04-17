@@ -1,5 +1,6 @@
-#Thu Apr 16 18:12:38 EEST 2026
+#Fri Apr 17 19:43:25 EEST 2026
 D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\BingoChatApplication.java=1775379183857
+D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\configuration\\internationalization\\InternationalizationConfiguration.java=1776425858210
 D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\configuration\\redis\\RedisConfiguration.java=1776259444842
 D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\configuration\\websocket\\WebSocketAuthInterceptor.java=1775916085940
 D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\configuration\\websocket\\WebSocketConfiguration.java=1775916085924
@@ -17,7 +18,8 @@ D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\dto\\reque
 D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\dto\\request\\MessageRequestDto.java=1775768673714
 D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\dto\\request\\UserLoginRequestDto.java=1775392898913
 D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\dto\\request\\UserRegistrationRequestDto.java=1775916086052
-D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\dto\\response\\ChatResponseDto.java=1775812169438
+D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\dto\\response\\ChatListItemResponseDto.java=1776355039312
+D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\dto\\response\\ChatResponseDto.java=1776436431950
 D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\dto\\response\\MessagePageResponseDto.java=1775903127307
 D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\dto\\response\\MessageResponseDto.java=1775768690181
 D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\dto\\response\\TypingEventResponseDto.java=1776349683463
@@ -26,7 +28,7 @@ D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\dto\\respo
 D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\dto\\response\\UserProfileResponseDto.java=1775393373021
 D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\dto\\response\\UserRegistrationResponseDto.java=1775392819801
 D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\dto\\response\\UserSearchResponseDto.java=1775393208708
-D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\entity\\Chat.java=1775770355417
+D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\entity\\Chat.java=1776424238375
 D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\entity\\Message.java=1775770273587
 D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\entity\\Role.java=1776184716143
 D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\entity\\User.java=1775770818999
@@ -44,10 +46,10 @@ D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\exception\
 D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\exception\\UserNotFoundException.java=1775820067101
 D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\exception\\UserRoleNotFoundException.java=1775467851798
 D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\global\\GlobalExceptionHandler.java=1776258433177
-D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\mapper\\ChatMapper.java=1775822408315
+D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\mapper\\ChatMapper.java=1776443595186
 D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\mapper\\MessageMapper.java=1775906454942
 D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\mapper\\UserMapper.java=1775770293663
-D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\repository\\ChatRepository.java=1776348472100
+D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\repository\\ChatRepository.java=1776419623659
 D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\repository\\MessageRepository.java=1775900087951
 D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\repository\\RoleRepository.java=1776184715720
 D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\repository\\UserRepository.java=1775485080715
@@ -64,11 +66,12 @@ D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\service\\M
 D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\service\\RedisService.java=1776279135092
 D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\service\\UserService.java=1775770310345
 D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\service\\impl\\AuthenticationServiceImpl.java=1776184716053
-D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\service\\impl\\ChatServiceImpl.java=1775915146452
-D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\service\\impl\\MessageServiceImpl.java=1776345141485
-D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\service\\impl\\RedisServiceImpl.java=1776279135189
+D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\service\\impl\\ChatServiceImpl.java=1776444097517
+D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\service\\impl\\MessageServiceImpl.java=1776424332314
+D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\service\\impl\\RedisServiceImpl.java=1776422152082
 D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\service\\impl\\UserServiceImpl.java=1775474865532
-D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\service\\redis\\RedisKeys.java=1776276434089
+D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\service\\presence\\PresenceTimeFormatter.java=1776435313577
+D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\service\\redis\\RedisKeys.java=1776422400231
 D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\service\\validator\\AccessValidator.java=1776185721718
 D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\validation\\PasswordMatch.java=1775916085958
 D\:\\Projects\\bingo-chat-application\\src\\main\\java\\org\\example\\validation\\PasswordMatchValidator.java=1776352220670

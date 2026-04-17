@@ -20,6 +20,7 @@ D:\Projects\bingo-chat-application\src\main\java\org\example\repository\MessageR
 D:\Projects\bingo-chat-application\src\main\java\org\example\validation\PasswordMatch.java
 D:\Projects\bingo-chat-application\src\main\java\org\example\dto\response\UserLoginResponseDto.java
 D:\Projects\bingo-chat-application\src\main\java\org\example\controller\http\UserController.java
+D:\Projects\bingo-chat-application\src\main\java\org\example\dto\response\ChatListItemResponseDto.java
 D:\Projects\bingo-chat-application\src\main\java\org\example\service\impl\RedisServiceImpl.java
 D:\Projects\bingo-chat-application\src\main\java\org\example\exception\AuthenticationException.java
 D:\Projects\bingo-chat-application\src\main\java\org\example\security\SecurityAccessConfiguration.java
@@ -35,6 +36,8 @@ D:\Projects\bingo-chat-application\src\main\java\org\example\dto\response\UserPr
 D:\Projects\bingo-chat-application\src\main\java\org\example\controller\http\MessageController.java
 D:\Projects\bingo-chat-application\src\main\java\org\example\service\AuthenticationService.java
 D:\Projects\bingo-chat-application\src\main\java\org\example\controller\redis\RedisTestController.java
+D:\Projects\bingo-chat-application\src\main\java\org\example\service\presence\PresenceTimeFormatter.java
+D:\Projects\bingo-chat-application\src\main\java\org\example\configuration\internationalization\InternationalizationConfiguration.java
 D:\Projects\bingo-chat-application\src\main\java\org\example\BingoChatApplication.java
 D:\Projects\bingo-chat-application\src\main\java\org\example\controller\http\AuthenticationController.java
 D:\Projects\bingo-chat-application\src\main\java\org\example\service\redis\RedisKeys.java

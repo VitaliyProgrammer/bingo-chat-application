@@ -10,14 +10,17 @@ org\example\dto\response\UserSearchResponseDto.class
 org\example\service\impl\MessageServiceImpl.class
 org\example\controller\redis\RedisTestController.class
 org\example\repository\RoleRepository.class
+org\example\configuration\internationalization\InternationalizationConfiguration.class
 org\example\exception\RegistrationException.class
 org\example\dto\request\ChatRequestDto.class
+org\example\dto\response\ChatListItemResponseDto.class
 org\example\entity\role\RoleName.class
 org\example\exception\UserRoleNotFoundException.class
 org\example\mapper\MessageMapperImpl.class
 org\example\dto\request\MessageRequestDto.class
 org\example\validation\PasswordMatch.class
 org\example\dto\response\UserLoginResponseDto.class
+org\example\service\presence\PresenceTimeFormatter.class
 org\example\controller\http\AuthenticationController.class
 org\example\security\jwt\JwtAuthenticationFilter.class
 org\example\dto\response\UnreadMessagesResponseDto.class

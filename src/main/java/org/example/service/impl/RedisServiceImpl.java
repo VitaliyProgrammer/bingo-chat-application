@@ -54,6 +54,9 @@ public class RedisServiceImpl implements RedisService {
     @Override
     public void setUserOffline(Long userId) {
 
+        redisTemplate.opsForValue().set(RedisKeys.userLastSeen(userId),
+                System.currentTimeMillis());
+
         redisTemplate.delete(RedisKeys.userOnline(userId));
     }
 
@@ -70,17 +73,17 @@ public class RedisServiceImpl implements RedisService {
     }
 
     @Override
-    public void resetUnReadMessages(Long userId, Long chatId) {
-
-        redisTemplate.delete(RedisKeys.unreadMessagesCount(userId, chatId));
-    }
-
-    @Override
     public int getUnreadMessages(Long userId, Long chatId) {
 
         Object value = redisTemplate.opsForValue()
                 .get(RedisKeys.unreadMessagesCount(userId, chatId));
 
         return value == null ? 0 : Integer.parseInt(value.toString());
+    }
+
+    @Override
+    public void resetUnReadMessages(Long userId, Long chatId) {
+
+        redisTemplate.delete(RedisKeys.unreadMessagesCount(userId, chatId));
     }
 }

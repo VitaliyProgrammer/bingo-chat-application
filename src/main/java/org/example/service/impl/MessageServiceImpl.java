@@ -1,5 +1,6 @@
 package org.example.service.impl;
 
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.example.dto.request.MessageRequestDto;
 import org.example.dto.response.MessagePageResponseDto;
@@ -80,6 +81,8 @@ public class MessageServiceImpl implements MessageService {
                 redisServiceImpl.incrementUnreadMessages(user.getId(), chat.getId());
             }
         });
+
+        chat.setLastActivityTime(LocalDateTime.now());
 
         return messageMapper.toDto(savedMessage);
     }

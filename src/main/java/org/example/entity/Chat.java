@@ -40,6 +40,9 @@ public class Chat {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "last_activity_time", nullable = false)
+    private LocalDateTime lastActivityTime;
+
     @ManyToMany
     @JoinTable(name = "chat_participants",
             joinColumns = @JoinColumn(name = "chat_id"),
@@ -48,7 +51,8 @@ public class Chat {
     private Set<User> participants = new HashSet<>();
 
     @PrePersist
-    public void prePersist() {
+    public void create() {
         this.createdAt = LocalDateTime.now();
+        this.lastActivityTime = LocalDateTime.now();
     }
 }

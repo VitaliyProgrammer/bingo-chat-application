@@ -8,6 +8,7 @@ public record ChatResponseDto(
         Long id,
         ChatType type,
         Set<Long> participantIds,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        String lastSeen
 ) {
 }

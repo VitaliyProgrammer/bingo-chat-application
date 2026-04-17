@@ -2,6 +2,8 @@
 <checkstyle version="9.3">
 <file name="D:\Projects\bingo-chat-application\src\main\java\org\example\BingoChatApplication.java">
 </file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\configuration\internationalization\InternationalizationConfiguration.java">
+</file>
 <file name="D:\Projects\bingo-chat-application\src\main\java\org\example\configuration\redis\RedisConfiguration.java">
 </file>
 <file name="D:\Projects\bingo-chat-application\src\main\java\org\example\configuration\websocket\handler\WebSocketDisconnectHandler.java">
@@ -35,6 +37,8 @@
 <file name="D:\Projects\bingo-chat-application\src\main\java\org\example\dto\request\UserLoginRequestDto.java">
 </file>
 <file name="D:\Projects\bingo-chat-application\src\main\java\org\example\dto\request\UserRegistrationRequestDto.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\dto\response\ChatListItemResponseDto.java">
 </file>
 <file name="D:\Projects\bingo-chat-application\src\main\java\org\example\dto\response\ChatResponseDto.java">
 </file>
@@ -133,6 +137,8 @@
 <file name="D:\Projects\bingo-chat-application\src\main\java\org\example\service\impl\UserServiceImpl.java">
 </file>
 <file name="D:\Projects\bingo-chat-application\src\main\java\org\example\service\MessageService.java">
+</file>
+<file name="D:\Projects\bingo-chat-application\src\main\java\org\example\service\presence\PresenceTimeFormatter.java">
 </file>
 <file name="D:\Projects\bingo-chat-application\src\main\java\org\example\service\redis\RedisKeys.java">
 </file>
