@@ -25,4 +25,8 @@ public interface RedisService {
     void resetUnReadMessages(Long userId, Long chatId);
 
     int getUnreadMessages(Long userId, Long chatId);
+
+    void setLastSeen(Long userId);
+
+    Long getLastSeen(Long userId);
 }

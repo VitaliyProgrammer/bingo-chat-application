@@ -54,8 +54,7 @@ public class RedisServiceImpl implements RedisService {
     @Override
     public void setUserOffline(Long userId) {
 
-        redisTemplate.opsForValue().set(RedisKeys.userLastSeen(userId),
-                System.currentTimeMillis());
+        setLastSeen(userId);
 
         redisTemplate.delete(RedisKeys.userOnline(userId));
     }
@@ -86,4 +85,21 @@ public class RedisServiceImpl implements RedisService {
 
         redisTemplate.delete(RedisKeys.unreadMessagesCount(userId, chatId));
     }
+
+    @Override
+    public void setLastSeen(Long userId) {
+
+        redisTemplate.opsForValue().set(RedisKeys.userLastSeen(userId),
+                String.valueOf(System.currentTimeMillis()));
+    }
+
+    @Override
+    public Long getLastSeen(Long userId) {
+
+        Object value = redisTemplate.opsForValue()
+                .get(RedisKeys.userLastSeen(userId));
+
+        return value == null ? null : Long.parseLong(value.toString());
+    }
+
 }

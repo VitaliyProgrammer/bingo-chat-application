@@ -1,24 +1,31 @@
 package org.example.service.impl;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.example.dto.response.ChatListItemResponseDto;
 import org.example.dto.response.ChatResponseDto;
 import org.example.entity.Chat;
 import org.example.entity.User;
 import org.example.entity.status.ChatType;
 import org.example.exception.UserNotFoundException;
+import org.example.mapper.ChatListMapper;
 import org.example.mapper.ChatMapper;
 import org.example.repository.ChatRepository;
 import org.example.repository.UserRepository;
 import org.example.security.CurrentUserProvider;
 import org.example.service.ChatService;
+import org.example.service.RedisService;
 import org.example.service.presence.PresenceTimeFormatter;
+import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ChatServiceImpl implements ChatService {
@@ -28,29 +35,45 @@ public class ChatServiceImpl implements ChatService {
     private final CurrentUserProvider currentUserProvider;
     private final ChatMapper chatMapper;
 
+    private final ChatListMapper chatListMapper;
+
     private final PresenceTimeFormatter timeFormatter;
+
+    private final MessageSource messageSource;
+
+    private final RedisService redisService;
 
     @Override
     @Transactional
-    public ChatResponseDto createPrivateChat(Long userId) {
+    public ChatResponseDto createPrivateChat(Long receiverId) {
 
         User senderUser = currentUserProvider.getAuthenticatedUser();
+        Long senderId = senderUser.getId();
 
-        if (senderUser.getId().equals(userId)) {
+        log.info("Creating private chat: senderId={}, receiverId={}", senderId, receiverId);
+
+        if (senderId.equals(receiverId)) {
+            log.warn("User tried to create chat with himself: userId={}", senderId);
             throw new IllegalStateException("Can`t create chat with yourself!");
         }
 
         Optional<Chat> existingChat = chatRepository
-                .findPrivateChatBetweenUsers(senderUser.getId(), userId);
+                .findPrivateChatBetweenUsers(senderUser.getId(), receiverId);
 
-        Locale locale = LocaleContextHolder.getLocale();
+        Locale locale = currentLocale();
 
         if (existingChat.isPresent()) {
+            log.info("Chat already exists between users: senderId={}, receiverId={}",
+                    senderId, receiverId);
+
             return chatMapper.toDto(existingChat.get(), timeFormatter, locale);
         }
 
-        User receiverUser = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException("User not found!"));
+        User receiverUser = userRepository.findById(receiverId)
+                .orElseThrow(() -> {
+                    log.error("Receiver user not found: userId={}", receiverId);
+                    return new UserNotFoundException("User not found!");
+                });
 
         Chat chat = new Chat();
         chat.setChatType(ChatType.PRIVATE);
@@ -59,6 +82,9 @@ public class ChatServiceImpl implements ChatService {
 
         Chat savedChat = chatRepository.save(chat);
 
+        log.info("Private chat created successfully: chatId={}, senderId={}, receiverId={}",
+                savedChat.getId(), senderId, receiverId);
+
         return chatMapper.toDto(savedChat, timeFormatter, locale);
     }
 
@@ -66,11 +92,97 @@ public class ChatServiceImpl implements ChatService {
     public List<ChatResponseDto> getMyChats() {
 
         User currentUser = currentUserProvider.getAuthenticatedUser();
+        Long userId = currentUser.getId();
 
-        Locale locale = LocaleContextHolder.getLocale();
+        log.debug("Fetching chats for userId={}", userId);
 
-        return chatRepository.findAllChatsByUserId(currentUser.getId()).stream()
+        Locale locale = currentLocale();
+
+        List<ChatResponseDto> result = chatRepository.findAllChatsByUserId(userId).stream()
                 .map(chat -> chatMapper.toDto(chat, timeFormatter, locale))
                 .toList();
+
+        log.debug("Fetched {} chats for userId={}", result.size(), userId);
+
+        return result;
+    }
+
+    @Override
+    public List<ChatListItemResponseDto> getMyChatList() {
+
+        User currentUser = currentUserProvider.getAuthenticatedUser();
+        Long userId = currentUser.getId();
+
+        log.debug("Building chat list for userId={}", userId);
+
+        Locale locale = currentLocale();
+
+        List<ChatListItemResponseDto> result = chatRepository.findAllChatsByUserId(userId).stream()
+                .map(chat -> mapToChatListItem(chat, currentUser.getId(), locale))
+                .sorted(chatComparator())
+                .toList();
+
+        log.debug("Chat list built: userId={}, size={}", userId, result.size());
+
+        return result;
+    }
+
+    private ChatListItemResponseDto mapToChatListItem(Chat chat, Long currentUserId,
+                                                      Locale locale) {
+
+        User companion = chat.getParticipants().stream()
+                .filter(user -> !user.getId().equals(currentUserId))
+                .findFirst()
+                .orElseThrow(() -> {
+                    log.error("Companion not found in chat: chatId={}, userId={}",
+                            chat.getId(), currentUserId);
+                    return new IllegalStateException("Companion not found!");
+                });
+
+        Long companionId = companion.getId();
+
+        boolean isOnline = redisService.isUserOnline(companionId);
+
+        String presenceStatus = getPresenceUser(companionId, isOnline, locale);
+
+        int unreadCount = redisService.getUnreadMessages(currentUserId, chat.getId());
+
+        String lastMessage = Optional.ofNullable(chat.getLastMessageText()).orElse("");
+
+        log.debug("ChatListItem: chatId={}, companionId={}, unread={}, online={}",
+                chat.getId(), companionId, unreadCount, isOnline);
+
+        return chatListMapper.toDto(chat, companion, lastMessage,
+                unreadCount, presenceStatus, isOnline);
+    }
+
+    private Comparator<ChatListItemResponseDto> chatComparator() {
+
+        return Comparator
+                .comparing(ChatListItemResponseDto::isOnline, Comparator.reverseOrder())
+                .thenComparing(ChatListItemResponseDto::lastActivityTime,
+                        Comparator.nullsLast(Comparator.reverseOrder()));
+    }
+
+    private String getPresenceUser(Long userId, boolean isOnline, Locale locale) {
+
+        if (isOnline) {
+
+            return messageSource.getMessage("user.online", null, "Online",
+                    locale);
+        }
+
+        Long lastSeen = redisService.getLastSeen(userId);
+
+        if (lastSeen == null) {
+            log.debug("User offline without lastSeen: userId={}", userId);
+            return messageSource.getMessage("user.offline", null, locale);
+        }
+
+        return timeFormatter.formatLastSeen(lastSeen, locale);
+    }
+
+    private Locale currentLocale() {
+        return LocaleContextHolder.getLocale();
     }
 }

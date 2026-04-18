@@ -71,6 +71,7 @@ public class MessageServiceImpl implements MessageService {
         message.setSender(senderUser);
         message.setContent(request.content());
         message.setStatus(MessageStatus.SENT);
+        chat.setLastMessageText(message.getContent());
 
         replyToMessage(request, message, chat);
 

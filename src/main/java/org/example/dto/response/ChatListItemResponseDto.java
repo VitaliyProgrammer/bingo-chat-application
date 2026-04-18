@@ -1,5 +1,7 @@
 package org.example.dto.response;
 
+import java.time.LocalDateTime;
+
 public record ChatListItemResponseDto(
         Long chatId,
         Long userId,
@@ -8,6 +10,7 @@ public record ChatListItemResponseDto(
         String lastMessage,
         int unreadCount,
         String presenceStatus,
-        boolean isOnline
+        boolean isOnline,
+        LocalDateTime lastActivityTime
 ) {
 }

@@ -43,6 +43,9 @@ public class Chat {
     @Column(name = "last_activity_time", nullable = false)
     private LocalDateTime lastActivityTime;
 
+    @Column(name = "last_message_text")
+    private String lastMessageText;
+
     @ManyToMany
     @JoinTable(name = "chat_participants",
             joinColumns = @JoinColumn(name = "chat_id"),

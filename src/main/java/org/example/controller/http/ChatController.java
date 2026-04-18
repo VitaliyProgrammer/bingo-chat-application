@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.example.dto.response.ChatListItemResponseDto;
 import org.example.dto.response.ChatResponseDto;
 import org.example.service.ChatService;
 import org.springframework.http.HttpStatus;
@@ -30,11 +31,20 @@ public class ChatController {
         return chatService.createPrivateChat(userId);
     }
 
-    @GetMapping
+    @GetMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
     @Operation(summary = "Get my chats", description = "Get all chats for the current user")
     public List<ChatResponseDto> getMyChat() {
 
         return chatService.getMyChats();
     }
+
+    @GetMapping("list")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Get my chatList", description = "Get all ")
+    public List<ChatListItemResponseDto> getChatList() {
+
+        return chatService.getMyChatList();
+    }
+
 }
