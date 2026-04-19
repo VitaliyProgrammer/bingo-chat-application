@@ -15,6 +15,8 @@ public interface MessageService {
 
     MessageResponseDto markAsRead(Long messageId);
 
+    void markChatAsRead(Long chatId);
+
     void deleteMessage(Long messageId);
 
     MessagePageResponseDto getChatMessages(Long chatId, int page, int size);

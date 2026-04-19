@@ -2,6 +2,7 @@ package org.example.service.impl;
 
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.dto.request.MessageRequestDto;
 import org.example.dto.response.MessagePageResponseDto;
 import org.example.dto.response.MessageResponseDto;
@@ -10,6 +11,9 @@ import org.example.entity.Chat;
 import org.example.entity.Message;
 import org.example.entity.User;
 import org.example.entity.status.MessageStatus;
+import org.example.event.MessageDeliveredEvent;
+import org.example.event.MessageReadEvent;
+import org.example.event.MessageSentEvent;
 import org.example.exception.ChatNotFoundException;
 import org.example.exception.ForbiddenActionException;
 import org.example.exception.MessageNotFoundException;
@@ -18,6 +22,7 @@ import org.example.repository.ChatRepository;
 import org.example.repository.MessageRepository;
 import org.example.security.CurrentUserProvider;
 import org.example.service.MessageService;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -26,6 +31,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MessageServiceImpl implements MessageService {
@@ -38,8 +44,10 @@ public class MessageServiceImpl implements MessageService {
 
     private final MessageMapper messageMapper;
 
-    private final RedisServiceImpl redisServiceImpl;
+    private final RedisService redisService;
     private final SimpMessagingTemplate messagingTemplate;
+
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -52,7 +60,11 @@ public class MessageServiceImpl implements MessageService {
 
         validateUserInChat(chat, senderUser);
 
-        redisServiceImpl.resetUnReadMessages(senderUser.getId(), chatId);
+        log.info("Opening chat: chatId={}, userId={}", chatId, senderUser.getId());
+
+        redisService.resetUnReadMessages(senderUser.getId(), chatId);
+
+        markChatAsRead(chatId);
     }
 
     @Override
@@ -71,21 +83,28 @@ public class MessageServiceImpl implements MessageService {
         message.setSender(senderUser);
         message.setContent(request.content());
         message.setStatus(MessageStatus.SENT);
-        chat.setLastMessageText(message.getContent());
 
         replyToMessage(request, message, chat);
 
         Message savedMessage = messageRepository.save(message);
 
+        chat.setLastMessageText(savedMessage.getContent());
+        chat.setLastActivityTime(LocalDateTime.now());
+
+        log.info("Message sent: messageId={}, chatId={}, senderId={}",
+                savedMessage.getId(), chat.getId(), senderUser.getId());
+
         chat.getParticipants().forEach(user -> {
             if (!user.getId().equals(senderUser.getId())) {
-                redisServiceImpl.incrementUnreadMessages(user.getId(), chat.getId());
+                redisService.incrementUnreadMessages(user.getId(), chat.getId());
             }
         });
 
-        chat.setLastActivityTime(LocalDateTime.now());
+        MessageResponseDto response = messageMapper.toDto(savedMessage);
 
-        return messageMapper.toDto(savedMessage);
+        eventPublisher.publishEvent(new MessageSentEvent(chat.getId(), response));
+
+        return response;
     }
 
     @Override
@@ -112,10 +131,23 @@ public class MessageServiceImpl implements MessageService {
         Message message = getMessageOrThrow(messageId);
 
         validateUserInChat(message.getChat(), currentUser);
-        validateReceiver(message, currentUser);
-        validateStatus(message, MessageStatus.SENT);
+        validateNotSender(message, currentUser);
 
+        if (message.getStatus() == MessageStatus.DELIVERED
+                || message.getStatus() == MessageStatus.READ) {
+
+            log.debug("Skip duplicate DELIVERED event: messageId={}", messageId);
+            return messageMapper.toDto(message);
+        }
+
+        validateStatusTransition(message, MessageStatus.DELIVERED);
         message.setStatus(MessageStatus.DELIVERED);
+
+        log.info("Message delivered: messageId={}, userId={}", messageId, currentUser.getId());
+
+        eventPublisher.publishEvent(new MessageDeliveredEvent(
+                message.getChat().getId(), message.getId(), currentUser.getId())
+        );
 
         return messageMapper.toDto(message);
     }
@@ -129,12 +161,43 @@ public class MessageServiceImpl implements MessageService {
         Message message = getMessageOrThrow(messageId);
 
         validateUserInChat(message.getChat(), currentUser);
-        validateReceiver(message, currentUser);
-        validateStatus(message, MessageStatus.DELIVERED);
+        validateNotSender(message, currentUser);
 
+        if (message.getStatus() == MessageStatus.READ) {
+            log.debug("Skip duplicate READ event: messageId={}", messageId);
+            return messageMapper.toDto(message);
+        }
+
+        validateStatusTransition(message, MessageStatus.READ);
         message.setStatus(MessageStatus.READ);
 
+        log.info("Message read: messageId={}, userId={}", messageId, currentUser.getId());
+
+        eventPublisher.publishEvent(new MessageReadEvent(
+                message.getChat().getId(), currentUser.getId())
+        );
+
         return messageMapper.toDto(message);
+    }
+
+    @Override
+    @Transactional
+    public void markChatAsRead(Long chatId) {
+
+        User currentUser = currentUserProvider.getAuthenticatedUser();
+
+        int allMessagesAsRead =
+                messageRepository.markAllMessagesInChatAsRead(chatId, currentUser.getId());
+
+        if (allMessagesAsRead > 0) {
+
+            log.info("Bulk read: chatId={}, userId={}, count={}",
+                    chatId, currentUser.getId(), allMessagesAsRead);
+
+            redisService.resetUnReadMessages(currentUser.getId(), chatId);
+
+            eventPublisher.publishEvent(new MessageReadEvent(chatId, currentUser.getId()));
+        }
     }
 
     @Override
@@ -157,6 +220,8 @@ public class MessageServiceImpl implements MessageService {
 
         Chat chat = chatRepository.findById(chatId)
                 .orElseThrow(() -> new ChatNotFoundException("Chat not found!"));
+
+        validateUserInChat(chat, currentUser);
 
         if (!chat.getParticipants().contains(currentUser)) {
             throw new ForbiddenActionException("No access to this chat!");
@@ -183,7 +248,7 @@ public class MessageServiceImpl implements MessageService {
                 return;
             }
 
-            int unreadMessages = redisServiceImpl.getUnreadMessages(userId, response.chatId());
+            int unreadMessages = redisService.getUnreadMessages(userId, response.chatId());
 
             messagingTemplate.convertAndSendToUser(userId.toString(), "/queue/unread",
                     new UnreadMessagesResponseDto(response.chatId(), unreadMessages));
@@ -210,18 +275,29 @@ public class MessageServiceImpl implements MessageService {
         }
     }
 
-    private void validateReceiver(Message message, User user) {
+    private void validateNotSender(Message message, User user) {
 
-        if (!message.getSender().getId().equals(user.getId())) {
+        if (message.getSender().getId().equals(user.getId())) {
             throw new ForbiddenActionException("Sender can`t change message status!");
         }
     }
 
-    private void validateStatus(Message message, MessageStatus expectedStatus) {
+    private void validateStatusTransition(Message message, MessageStatus expectedStatus) {
 
-        if (message.getStatus() != expectedStatus) {
-            throw new IllegalStateException("Invalid status transition!");
+        MessageStatus currentStatus = message.getStatus();
+
+        if (currentStatus == MessageStatus.SENT && expectedStatus == MessageStatus.DELIVERED) {
+            return;
         }
+        if (currentStatus == MessageStatus.DELIVERED && expectedStatus == MessageStatus.READ) {
+            return;
+        }
+
+        log.warn("Invalid status transition: messageId={}, from={}, to={}",
+                message.getId(), currentStatus, expectedStatus);
+
+        throw new IllegalStateException("Invalid status transition: " + currentStatus
+                + " -> " + expectedStatus);
     }
 
     private void validateSameChat(Message parentMessage, Chat chat) {
