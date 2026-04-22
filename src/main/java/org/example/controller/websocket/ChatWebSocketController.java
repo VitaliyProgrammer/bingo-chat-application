@@ -20,14 +20,7 @@ public class ChatWebSocketController {
     @MessageMapping("/chat.send")
     public void sendMessage(MessageRequestDto request) {
 
-        MessageResponseDto response = messageService.sendMessage(request);
-
-        messagingTemplate.convertAndSend("/topic/chat/" + response.chatId(), response);
-
-        messagingTemplate.convertAndSendToUser(response.senderId().toString(),
-                "/queue/delivery", response);
-
-        messageService.handleUnreadAndNotifyMessages(response);
+        messageService.sendMessage(request);
     }
 
     @MessageMapping("/chat.typing")

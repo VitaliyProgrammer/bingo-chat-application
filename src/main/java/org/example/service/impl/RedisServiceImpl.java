@@ -2,13 +2,14 @@ package org.example.service.impl;
 
 import java.time.Duration;
 import lombok.RequiredArgsConstructor;
+import org.example.service.RedisService;
 import org.example.service.redis.RedisKeys;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class RedisService implements org.example.service.RedisService {
+public class RedisServiceImpl implements RedisService {
 
     private final RedisTemplate<String, Object> redisTemplate;
 
@@ -100,5 +101,4 @@ public class RedisService implements org.example.service.RedisService {
 
         return value == null ? null : Long.parseLong(value.toString());
     }
-
 }

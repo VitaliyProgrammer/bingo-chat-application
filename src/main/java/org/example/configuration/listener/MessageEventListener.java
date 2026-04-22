@@ -3,9 +3,12 @@ package org.example.configuration.listener;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.dto.response.MessageResponseDto;
+import org.example.dto.response.UnreadMessagesResponseDto;
 import org.example.event.MessageDeliveredEvent;
 import org.example.event.MessageReadEvent;
 import org.example.event.MessageSentEvent;
+import org.example.service.RedisService;
 import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Async;
@@ -16,17 +19,42 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class MessageEventListener {
 
+    private final RedisService redisService;
     private final SimpMessagingTemplate messagingTemplate;
 
     @Async("eventExecutor")
     @EventListener
     public void handleMessageSent(MessageSentEvent event) {
 
-        log.debug("Event: messages sent -> chatId={}, messageId={}",
-                event.chatId(), event.message().id());
+        Long chatId = event.chatId();
+        MessageResponseDto message = event.message();
 
-        messagingTemplate.convertAndSend("/topic/chat/"
-                + event.chatId(), event.message());
+        log.debug("Event: messages sent -> chatId={}, messageId={}",
+                chatId, message.id());
+
+        messagingTemplate.convertAndSend("/topic/chat/" + event.chatId(), message);
+
+        messagingTemplate.convertAndSendToUser(
+                message.senderId().toString(),
+                "/queue/delivery",
+                message
+        );
+
+        event.participantOnline().forEach((userId, isOnline) -> {
+
+            if (userId.equals(message.senderId())) {
+                return;
+            }
+            if (!isOnline) {
+                int unreadMessages = redisService.getUnreadMessages(userId, message.chatId());
+
+                messagingTemplate.convertAndSendToUser(
+                        userId.toString(),
+                        "/queue/unread",
+                        new UnreadMessagesResponseDto(message.chatId(), unreadMessages)
+                );
+            }
+        });
     }
 
     @Async("eventExecutor")
@@ -41,7 +69,8 @@ public class MessageEventListener {
                         "type", "DELIVERED",
                         "messageId", event.messageId(),
                         "userId", event.userId()
-                ));
+                )
+        );
     }
 
     @Async("eventExecutor")

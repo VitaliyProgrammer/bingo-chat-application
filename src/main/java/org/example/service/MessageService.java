@@ -20,6 +20,4 @@ public interface MessageService {
     void deleteMessage(Long messageId);
 
     MessagePageResponseDto getChatMessages(Long chatId, int page, int size);
-
-    void handleUnreadAndNotifyMessages(MessageResponseDto response);
 }

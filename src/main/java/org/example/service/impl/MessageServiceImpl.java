@@ -1,12 +1,13 @@
 package org.example.service.impl;
 
 import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.dto.request.MessageRequestDto;
 import org.example.dto.response.MessagePageResponseDto;
 import org.example.dto.response.MessageResponseDto;
-import org.example.dto.response.UnreadMessagesResponseDto;
 import org.example.entity.Chat;
 import org.example.entity.Message;
 import org.example.entity.User;
@@ -22,12 +23,12 @@ import org.example.repository.ChatRepository;
 import org.example.repository.MessageRepository;
 import org.example.security.CurrentUserProvider;
 import org.example.service.MessageService;
+import org.example.service.RedisService;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,7 +46,6 @@ public class MessageServiceImpl implements MessageService {
     private final MessageMapper messageMapper;
 
     private final RedisService redisService;
-    private final SimpMessagingTemplate messagingTemplate;
 
     private final ApplicationEventPublisher eventPublisher;
 
@@ -76,6 +76,10 @@ public class MessageServiceImpl implements MessageService {
         Chat chat = chatRepository.findById(request.chatId())
                 .orElseThrow(() -> new ChatNotFoundException("Chat not found!"));
 
+        Map<Long, Boolean> participantsOnline = chat.getParticipants().stream()
+                .map(User::getId)
+                .collect(Collectors.toMap(userId -> userId, redisService::isUserOnline));
+
         validateUserInChat(chat, senderUser);
 
         Message message = new Message();
@@ -102,7 +106,8 @@ public class MessageServiceImpl implements MessageService {
 
         MessageResponseDto response = messageMapper.toDto(savedMessage);
 
-        eventPublisher.publishEvent(new MessageSentEvent(chat.getId(), response));
+        eventPublisher.publishEvent(new MessageSentEvent(chat.getId(), response,
+                participantsOnline));
 
         return response;
     }
@@ -223,36 +228,11 @@ public class MessageServiceImpl implements MessageService {
 
         validateUserInChat(chat, currentUser);
 
-        if (!chat.getParticipants().contains(currentUser)) {
-            throw new ForbiddenActionException("No access to this chat!");
-        }
-
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
 
         Page<Message> messagePage = messageRepository.findAllByChatId(chatId, pageable);
 
         return messageMapper.toPageDto(messagePage);
-    }
-
-    @Override
-    public void handleUnreadAndNotifyMessages(MessageResponseDto response) {
-
-        Chat chat = chatRepository.findById(response.chatId())
-                .orElseThrow(() -> new ChatNotFoundException("Chat not found!"));
-
-        chat.getParticipants().forEach(user -> {
-
-            Long userId = user.getId();
-
-            if (userId.equals(response.senderId())) {
-                return;
-            }
-
-            int unreadMessages = redisService.getUnreadMessages(userId, response.chatId());
-
-            messagingTemplate.convertAndSendToUser(userId.toString(), "/queue/unread",
-                    new UnreadMessagesResponseDto(response.chatId(), unreadMessages));
-        });
     }
 
     private Message getMessageOrThrow(Long messageId) {
