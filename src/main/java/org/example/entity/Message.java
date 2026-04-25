@@ -12,6 +12,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -20,7 +21,12 @@ import lombok.Setter;
 import org.example.entity.status.MessageStatus;
 
 @Entity
-@Table(name = "messages")
+@Table(
+        name = "messages",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"chat_id", "sequence"})
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -51,6 +57,9 @@ public class Message {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reply_to_message_id")
     private Message replyTo;
+
+    @Column(name = "sequence", nullable = false)
+    private Long sequence;
 
     @PrePersist
     public void prePersist() {

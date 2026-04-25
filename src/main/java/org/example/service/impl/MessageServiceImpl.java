@@ -1,10 +1,14 @@
 package org.example.service.impl;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.configuration.outbox.factory.OutBoxEventFactory;
+import org.example.configuration.outbox.repository.OutBoxEventRepository;
+import org.example.dto.request.MessageAckRequestDto;
 import org.example.dto.request.MessageRequestDto;
 import org.example.dto.response.MessagePageResponseDto;
 import org.example.dto.response.MessageResponseDto;
@@ -24,11 +28,11 @@ import org.example.repository.MessageRepository;
 import org.example.security.CurrentUserProvider;
 import org.example.service.MessageService;
 import org.example.service.RedisService;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,7 +51,11 @@ public class MessageServiceImpl implements MessageService {
 
     private final RedisService redisService;
 
-    private final ApplicationEventPublisher eventPublisher;
+    private final RedisTemplate<String, Object> redisTemplate;
+
+    private final OutBoxEventRepository outBoxEventRepository;
+
+    private final OutBoxEventFactory outBoxEventFactory;
 
     @Override
     @Transactional
@@ -82,11 +90,17 @@ public class MessageServiceImpl implements MessageService {
 
         validateUserInChat(chat, senderUser);
 
+        chatRepository.incrementSequence(chat.getId());
+
+        Long sequence = chatRepository.getCurrentSequence(chat.getId());
+
         Message message = new Message();
         message.setChat(chat);
         message.setSender(senderUser);
         message.setContent(request.content());
         message.setStatus(MessageStatus.SENT);
+
+        message.setSequence(sequence);
 
         replyToMessage(request, message, chat);
 
@@ -98,6 +112,8 @@ public class MessageServiceImpl implements MessageService {
         log.info("Message sent: messageId={}, chatId={}, senderId={}",
                 savedMessage.getId(), chat.getId(), senderUser.getId());
 
+        redisTemplate.opsForSet().add("pending:messages", savedMessage.getId().toString());
+
         chat.getParticipants().forEach(user -> {
             if (!user.getId().equals(senderUser.getId())) {
                 redisService.incrementUnreadMessages(user.getId(), chat.getId());
@@ -106,8 +122,9 @@ public class MessageServiceImpl implements MessageService {
 
         MessageResponseDto response = messageMapper.toDto(savedMessage);
 
-        eventPublisher.publishEvent(new MessageSentEvent(chat.getId(), response,
-                participantsOnline));
+        outBoxEventRepository.save(outBoxEventFactory.messageSent(
+                new MessageSentEvent(chat.getId(), response, participantsOnline)
+        ));
 
         return response;
     }
@@ -150,9 +167,10 @@ public class MessageServiceImpl implements MessageService {
 
         log.info("Message delivered: messageId={}, userId={}", messageId, currentUser.getId());
 
-        eventPublisher.publishEvent(new MessageDeliveredEvent(
-                message.getChat().getId(), message.getId(), currentUser.getId())
-        );
+        outBoxEventRepository.save(outBoxEventFactory.messageDelivered(
+                new MessageDeliveredEvent(message.getChat().getId(), message.getId(),
+                        currentUser.getId())
+        ));
 
         return messageMapper.toDto(message);
     }
@@ -178,9 +196,8 @@ public class MessageServiceImpl implements MessageService {
 
         log.info("Message read: messageId={}, userId={}", messageId, currentUser.getId());
 
-        eventPublisher.publishEvent(new MessageReadEvent(
-                message.getChat().getId(), currentUser.getId())
-        );
+        outBoxEventRepository.save(outBoxEventFactory.messageRead(
+                new MessageReadEvent(message.getChat().getId(), currentUser.getId())));
 
         return messageMapper.toDto(message);
     }
@@ -201,7 +218,8 @@ public class MessageServiceImpl implements MessageService {
 
             redisService.resetUnReadMessages(currentUser.getId(), chatId);
 
-            eventPublisher.publishEvent(new MessageReadEvent(chatId, currentUser.getId()));
+            outBoxEventRepository.save(outBoxEventFactory.messageRead(
+                    new MessageReadEvent(chatId, currentUser.getId())));
         }
     }
 
@@ -235,6 +253,17 @@ public class MessageServiceImpl implements MessageService {
         return messageMapper.toPageDto(messagePage);
     }
 
+    @Override
+    @Transactional
+    public void acknowledge(MessageAckRequestDto request) {
+
+        String acknowledgeKey = "ack:" + request.messageId();
+
+        redisService.setValue(acknowledgeKey, "1", Duration.ofMinutes(10));
+
+        redisTemplate.opsForSet().add("pending:messages", request.messageId().toString());
+    }
+
     private Message getMessageOrThrow(Long messageId) {
 
         return messageRepository.findById(messageId)
@@ -258,7 +287,7 @@ public class MessageServiceImpl implements MessageService {
     private void validateNotSender(Message message, User user) {
 
         if (message.getSender().getId().equals(user.getId())) {
-            throw new ForbiddenActionException("Sender can`t change message status!");
+            throw new ForbiddenActionException("Sender can`t change message OutboxEventStatus!");
         }
     }
 
@@ -273,10 +302,10 @@ public class MessageServiceImpl implements MessageService {
             return;
         }
 
-        log.warn("Invalid status transition: messageId={}, from={}, to={}",
+        log.warn("Invalid OutboxEventStatus transition: messageId={}, from={}, to={}",
                 message.getId(), currentStatus, expectedStatus);
 
-        throw new IllegalStateException("Invalid status transition: " + currentStatus
+        throw new IllegalStateException("Invalid OutboxEventStatus transition: " + currentStatus
                 + " -> " + expectedStatus);
     }
 

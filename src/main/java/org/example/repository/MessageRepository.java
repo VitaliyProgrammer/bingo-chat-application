@@ -22,4 +22,7 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
             AND m.status <> 'READ'
             """)
     int markAllMessagesInChatAsRead(Long chatId, Long userId);
+
+    @Query("SELECT m FROM Message m WHERE m.chat.id = :chatId ORDER BY m.sequence ASC")
+    Page<Message> findAllByChatIdOrdered(Long chatId, Pageable pageable);
 }

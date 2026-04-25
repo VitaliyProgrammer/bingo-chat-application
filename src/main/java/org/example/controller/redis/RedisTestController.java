@@ -1,5 +1,6 @@
 package org.example.controller.redis;
 
+import java.time.Duration;
 import lombok.RequiredArgsConstructor;
 import org.example.service.RedisService;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,7 +19,7 @@ public class RedisTestController {
     @PostMapping
     public void save(@RequestParam String key, @RequestParam String value) {
 
-        redisService.setValue(key, value);
+        redisService.setValue(key, value, Duration.ofMinutes(10));
     }
 
     @GetMapping

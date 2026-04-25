@@ -13,9 +13,9 @@ public class RedisServiceImpl implements RedisService {
 
     private final RedisTemplate<String, Object> redisTemplate;
 
-    public void setValue(String key, String value) {
+    public void setValue(String key, String value, Duration ttl) {
 
-        redisTemplate.opsForValue().set(key, value);
+        redisTemplate.opsForValue().set(key, value, ttl);
     }
 
     public String getValue(String key) {
@@ -100,5 +100,12 @@ public class RedisServiceImpl implements RedisService {
                 .get(RedisKeys.userLastSeen(userId));
 
         return value == null ? null : Long.parseLong(value.toString());
+    }
+
+    @Override
+    public boolean setIfAbsent(String key, String value, Duration ttl) {
+
+        Boolean result = redisTemplate.opsForValue().setIfAbsent(key, value, ttl);
+        return Boolean.TRUE.equals(result);
     }
 }

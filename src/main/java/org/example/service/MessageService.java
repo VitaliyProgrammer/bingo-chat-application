@@ -1,5 +1,6 @@
 package org.example.service;
 
+import org.example.dto.request.MessageAckRequestDto;
 import org.example.dto.request.MessageRequestDto;
 import org.example.dto.response.MessagePageResponseDto;
 import org.example.dto.response.MessageResponseDto;
@@ -20,4 +21,6 @@ public interface MessageService {
     void deleteMessage(Long messageId);
 
     MessagePageResponseDto getChatMessages(Long chatId, int page, int size);
+
+    void acknowledge(MessageAckRequestDto request);
 }

@@ -1,5 +1,6 @@
 package org.example.configuration.listener;
 
+import java.time.Duration;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +20,8 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class MessageEventListener {
 
+    private static final Duration IDEMPOTENCY_TTL = Duration.ofMinutes(10);
+
     private final RedisService redisService;
     private final SimpMessagingTemplate messagingTemplate;
 
@@ -29,8 +32,14 @@ public class MessageEventListener {
         Long chatId = event.chatId();
         MessageResponseDto message = event.message();
 
-        log.debug("Event: messages sent -> chatId={}, messageId={}",
-                chatId, message.id());
+        String key = "event:sent:" + message.id();
+
+        if (!redisService.setIfAbsent(key, "1", IDEMPOTENCY_TTL)) {
+            log.debug("Duplicate SENT event skipped: {}", key);
+            return;
+        }
+
+        log.debug("Event: messages sent -> chatId={}, messageId={}", chatId, message.id());
 
         messagingTemplate.convertAndSend("/topic/chat/" + event.chatId(), message);
 
@@ -61,6 +70,13 @@ public class MessageEventListener {
     @EventListener
     public void handleMessageDelivered(MessageDeliveredEvent event) {
 
+        String key = "event:delivered" + event.messageId() + ":" + event.userId();
+
+        if (!redisService.setIfAbsent(key, "1", IDEMPOTENCY_TTL)) {
+            log.debug("Duplicate DELIVERED event skipped: {}", key);
+            return;
+        }
+
         log.debug("Event: messages delivered -> messageId={}, userId={}",
                 event.messageId(), event.userId());
 
@@ -76,6 +92,13 @@ public class MessageEventListener {
     @Async("eventExecutor")
     @EventListener
     public void handleMessageRead(MessageReadEvent event) {
+
+        String key = "event:read:" + event.chatId() + ":" + event.userId();
+
+        if (!redisService.setIfAbsent(key, "1", IDEMPOTENCY_TTL)) {
+            log.debug("Duplicate READ event skipped: {}", key);
+            return;
+        }
 
         log.debug("Event: messages read -> chatId={}, userId={}",
                 event.chatId(), event.userId());

@@ -46,6 +46,9 @@ public class Chat {
     @Column(name = "last_message_text")
     private String lastMessageText;
 
+    @Column(name = "last_message_sequence", nullable = false)
+    private Long lastMessageSequence = 0L;
+
     @ManyToMany
     @JoinTable(name = "chat_participants",
             joinColumns = @JoinColumn(name = "chat_id"),
@@ -57,5 +60,10 @@ public class Chat {
     public void create() {
         this.createdAt = LocalDateTime.now();
         this.lastActivityTime = LocalDateTime.now();
+    }
+
+    public Long nextSequence() {
+        this.lastMessageSequence++;
+        return this.lastMessageSequence;
     }
 }

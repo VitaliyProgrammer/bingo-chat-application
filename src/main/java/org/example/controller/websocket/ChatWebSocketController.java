@@ -1,8 +1,8 @@
 package org.example.controller.websocket;
 
 import lombok.RequiredArgsConstructor;
+import org.example.dto.request.MessageAckRequestDto;
 import org.example.dto.request.MessageRequestDto;
-import org.example.dto.response.MessageResponseDto;
 import org.example.dto.response.TypingEventResponseDto;
 import org.example.service.MessageService;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -28,5 +28,11 @@ public class ChatWebSocketController {
 
         messagingTemplate.convertAndSend("/topic/chat/" + response.chatId() + "/typing",
                 response);
+    }
+
+    @MessageMapping("/chat.ack")
+    public void acknowledgeMessage(MessageAckRequestDto request) {
+
+        messageService.acknowledge(request);
     }
 }

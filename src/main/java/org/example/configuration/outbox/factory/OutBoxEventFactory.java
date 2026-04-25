@@ -1,0 +1,66 @@
+package org.example.configuration.outbox.factory;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.LocalDateTime;
+import lombok.RequiredArgsConstructor;
+import org.example.configuration.outbox.entity.OutboxEvent;
+import org.example.configuration.outbox.status.OutboxEventStatus;
+import org.example.event.MessageDeliveredEvent;
+import org.example.event.MessageReadEvent;
+import org.example.event.MessageSentEvent;
+import org.springframework.stereotype.Component;
+
+@Component
+@RequiredArgsConstructor
+public class OutBoxEventFactory {
+
+    private final ObjectMapper objectMapper;
+
+    private static final String AGGREGATE_TYPE_MESSAGE = "MESSAGE";
+
+    public OutboxEvent messageSent(MessageSentEvent event) {
+
+        return build(
+                event.message().id(),
+                OutboxEventStatus.MESSAGE_SENT,
+                event
+        );
+    }
+
+    public OutboxEvent messageDelivered(MessageDeliveredEvent event) {
+
+        return build(
+                event.messageId(),
+                OutboxEventStatus.MESSAGE_DELIVERED,
+                event
+        );
+    }
+
+    public OutboxEvent messageRead(MessageReadEvent event) {
+
+        return build(
+                event.chatId(),
+                OutboxEventStatus.MESSAGE_READ,
+                event
+        );
+    }
+
+    private OutboxEvent build(Long aggregateId, OutboxEventStatus status,
+                              Object payload) {
+        try {
+            return OutboxEvent.builder()
+                    .aggregateType(AGGREGATE_TYPE_MESSAGE)
+                    .aggregateId(aggregateId)
+                    .eventType(status.name())
+                    .payload(objectMapper.writeValueAsString(payload))
+                    .createdAt(LocalDateTime.now())
+                    .processed(false)
+                    .retryCount(0)
+                    .nextRetryAt(null)
+                    .build();
+
+        } catch (Exception exception) {
+            throw new RuntimeException("Failed to serialize outbox event", exception);
+        }
+    }
+}

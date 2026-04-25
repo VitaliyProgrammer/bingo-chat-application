@@ -4,7 +4,7 @@ import java.time.Duration;
 
 public interface RedisService {
 
-    void setValue(String key, String value);
+    void setValue(String key, String value, Duration duration);
 
     String getValue(String key);
 
@@ -29,4 +29,6 @@ public interface RedisService {
     void setLastSeen(Long userId);
 
     Long getLastSeen(Long userId);
+
+    boolean setIfAbsent(String key, String value, Duration ttl);
 }
