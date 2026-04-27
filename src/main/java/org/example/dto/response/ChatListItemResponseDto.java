@@ -4,7 +4,7 @@ import java.time.LocalDateTime;
 
 public record ChatListItemResponseDto(
         Long chatId,
-        Long userId,
+        Long companionId,
         String userName,
         String avatarUrl,
         String lastMessage,

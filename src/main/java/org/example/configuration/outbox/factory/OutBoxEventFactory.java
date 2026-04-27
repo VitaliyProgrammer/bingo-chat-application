@@ -14,9 +14,9 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class OutBoxEventFactory {
 
-    private final ObjectMapper objectMapper;
-
     private static final String AGGREGATE_TYPE_MESSAGE = "MESSAGE";
+
+    private final ObjectMapper objectMapper;
 
     public OutboxEvent messageSent(MessageSentEvent event) {
 

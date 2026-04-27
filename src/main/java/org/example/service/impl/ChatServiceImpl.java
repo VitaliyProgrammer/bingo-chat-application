@@ -53,7 +53,7 @@ public class ChatServiceImpl implements ChatService {
         log.info("Creating private chat: senderId={}, receiverId={}", senderId, receiverId);
 
         if (senderId.equals(receiverId)) {
-            log.warn("User tried to create chat with himself: userId={}", senderId);
+            log.warn("User tried to create chat with himself: chatId={}", senderId);
             throw new IllegalStateException("Can`t create chat with yourself!");
         }
 
@@ -71,7 +71,7 @@ public class ChatServiceImpl implements ChatService {
 
         User receiverUser = userRepository.findById(receiverId)
                 .orElseThrow(() -> {
-                    log.error("Receiver user not found: userId={}", receiverId);
+                    log.error("Receiver user not found: chatId={}", receiverId);
                     return new UserNotFoundException("User not found!");
                 });
 
@@ -94,7 +94,7 @@ public class ChatServiceImpl implements ChatService {
         User currentUser = currentUserProvider.getAuthenticatedUser();
         Long userId = currentUser.getId();
 
-        log.debug("Fetching chats for userId={}", userId);
+        log.debug("Fetching chats for chatId={}", userId);
 
         Locale locale = currentLocale();
 
@@ -102,7 +102,7 @@ public class ChatServiceImpl implements ChatService {
                 .map(chat -> chatMapper.toDto(chat, timeFormatter, locale))
                 .toList();
 
-        log.debug("Fetched {} chats for userId={}", result.size(), userId);
+        log.debug("Fetched {} chats for chatId={}", result.size(), userId);
 
         return result;
     }
@@ -113,7 +113,7 @@ public class ChatServiceImpl implements ChatService {
         User currentUser = currentUserProvider.getAuthenticatedUser();
         Long userId = currentUser.getId();
 
-        log.debug("Building chat list for userId={}", userId);
+        log.debug("Building chat list for chatId={}", userId);
 
         Locale locale = currentLocale();
 
@@ -122,7 +122,7 @@ public class ChatServiceImpl implements ChatService {
                 .sorted(chatComparator())
                 .toList();
 
-        log.debug("Chat list built: userId={}, size={}", userId, result.size());
+        log.debug("Chat list built: chatId={}, size={}", userId, result.size());
 
         return result;
     }
@@ -134,7 +134,7 @@ public class ChatServiceImpl implements ChatService {
                 .filter(user -> !user.getId().equals(currentUserId))
                 .findFirst()
                 .orElseThrow(() -> {
-                    log.error("Companion not found in chat: chatId={}, userId={}",
+                    log.error("Companion not found in chat: chatId={}, currentUserId={}",
                             chat.getId(), currentUserId);
                     return new IllegalStateException("Companion not found!");
                 });
@@ -175,7 +175,7 @@ public class ChatServiceImpl implements ChatService {
         Long lastSeen = redisService.getLastSeen(userId);
 
         if (lastSeen == null) {
-            log.debug("User offline without lastSeen: userId={}", userId);
+            log.debug("User offline without lastSeen: chatId={}", userId);
             return messageSource.getMessage("user.offline", null, locale);
         }
 

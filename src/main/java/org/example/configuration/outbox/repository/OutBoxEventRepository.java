@@ -17,5 +17,5 @@ public interface OutBoxEventRepository extends JpaRepository<OutboxEvent, Long> 
             AND (e.nextRetryAt IS NULL OR e.nextRetryAt <= CURRENT_TIMESTAMP)
             ORDER BY e.createdAt ASC
             """)
-    List<OutboxEvent> findBatchForProcessing(Pageable pageable) ;
+    List<OutboxEvent> findBatchForProcessing(Pageable pageable);
 }

@@ -1,6 +1,7 @@
 package org.example.controller.websocket;
 
 import lombok.RequiredArgsConstructor;
+import org.example.dto.request.ChatAsReadRequestDto;
 import org.example.dto.request.MessageAckRequestDto;
 import org.example.dto.request.MessageRequestDto;
 import org.example.dto.response.TypingEventResponseDto;
@@ -11,7 +12,7 @@ import org.springframework.stereotype.Controller;
 
 @Controller
 @RequiredArgsConstructor
-public class ChatWebSocketController {
+public class WebSocketController {
 
     private final MessageService messageService;
 
@@ -28,6 +29,12 @@ public class ChatWebSocketController {
 
         messagingTemplate.convertAndSend("/topic/chat/" + response.chatId() + "/typing",
                 response);
+    }
+
+    @MessageMapping("/chat.read")
+    public void readChatAsRead(ChatAsReadRequestDto request) {
+
+        messageService.markChatAsRead(request.chatId());
     }
 
     @MessageMapping("/chat.ack")

@@ -16,4 +16,14 @@ public class RedisKeys {
 
         return "chat:" + chaId + ":unread:" + userId;
     }
+
+    public static String userSessions(Long userId) {
+
+        return "presence:sessions:" + userId;
+    }
+
+    public static String userPresenceVersion(Long userId) {
+
+        return "presence:version:" + userId;
+    }
 }

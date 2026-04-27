@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class RedisServiceImpl implements RedisService {
 
+    //private static final Duration DURATION_TTL = Duration.ofHours(12);
     private final RedisTemplate<String, Object> redisTemplate;
 
     public void setValue(String key, String value, Duration ttl) {
@@ -107,5 +108,47 @@ public class RedisServiceImpl implements RedisService {
 
         Boolean result = redisTemplate.opsForValue().setIfAbsent(key, value, ttl);
         return Boolean.TRUE.equals(result);
+    }
+
+    @Override
+    public void incrementSessions(Long userId) {
+
+        redisTemplate.opsForValue().increment(RedisKeys.userSessions(userId));
+    }
+
+    @Override
+    public void decrementSessions(Long userId) {
+
+        Long value = redisTemplate.opsForValue().decrement(RedisKeys.userSessions(userId));
+
+        if (value != null && value <= 0) {
+            redisTemplate.delete(RedisKeys.userSessions(userId));
+        }
+    }
+
+    @Override
+    public long getSessions(Long userId) {
+
+        return getLongValue(RedisKeys.userSessions(userId));
+    }
+
+    @Override
+    public long getPresenceState(Long userId) {
+
+        return getLongValue(RedisKeys.userPresenceVersion(userId));
+    }
+
+    @Override
+    public long bumpPresenceState(Long userId) {
+
+        String key = RedisKeys.userPresenceVersion(userId);
+        Long version = redisTemplate.opsForValue().increment(key);
+
+        return version == null ? 0L : version;
+    }
+
+    private long getLongValue(String key) {
+        Object value = redisTemplate.opsForValue().get(key);
+        return value == null ? 0L : Long.parseLong(value.toString());
     }
 }

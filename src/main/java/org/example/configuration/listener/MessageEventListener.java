@@ -77,14 +77,14 @@ public class MessageEventListener {
             return;
         }
 
-        log.debug("Event: messages delivered -> messageId={}, userId={}",
+        log.debug("Event: messages delivered -> messageId={}, chatId={}",
                 event.messageId(), event.userId());
 
         messagingTemplate.convertAndSend("/topic/chat/" + event,
                 Map.of(
                         "type", "DELIVERED",
                         "messageId", event.messageId(),
-                        "userId", event.userId()
+                        "chatId", event.userId()
                 )
         );
     }
@@ -100,14 +100,14 @@ public class MessageEventListener {
             return;
         }
 
-        log.debug("Event: messages read -> chatId={}, userId={}",
+        log.debug("Event: messages read -> chatId={}, chatId={}",
                 event.chatId(), event.userId());
 
         messagingTemplate.convertAndSend(
                 "/topic/chat/" + event.chatId(),
                 Map.of("type", "READ",
                         "chatId", event.chatId(),
-                        "userId", event.userId()
+                        "chatId", event.userId()
                 )
         );
     }

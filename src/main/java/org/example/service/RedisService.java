@@ -31,4 +31,14 @@ public interface RedisService {
     Long getLastSeen(Long userId);
 
     boolean setIfAbsent(String key, String value, Duration ttl);
+
+    void incrementSessions(Long userId);
+
+    void decrementSessions(Long userId);
+
+    long getSessions(Long userId);
+
+    long bumpPresenceState(Long userId);
+
+    long getPresenceState(Long userId);
 }

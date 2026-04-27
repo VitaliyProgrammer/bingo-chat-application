@@ -28,10 +28,9 @@ public interface ChatRepository extends JpaRepository<Chat, Long> {
             AND p1.id = :user1Id AND p2.id = :user2Id AND p1.id <> p2.id""")
     Optional<Chat> findPrivateChatBetweenUsers(Long user1Id, Long user2Id);
 
-
     @Modifying
-    @Query("UPDATE Chat c SET c.lastMessageSequence = c.lastMessageSequence + 1 " +
-            "WHERE c.id = :chatId")
+    @Query("UPDATE Chat c SET c.lastMessageSequence = c.lastMessageSequence + 1 "
+            + "WHERE c.id = :chatId")
     int incrementSequence(@Param("chatId") Long chatId);
 
     @Query("SELECT c.lastMessageSequence FROM Chat c WHERE c.id = :chatId")

@@ -10,7 +10,7 @@ import org.mapstruct.Mapping;
 public interface ChatListMapper {
 
     @Mapping(target = "chatId", source = "chat.id")
-    @Mapping(target = "userId", source = "companion.id")
+    @Mapping(target = "companionId", source = "companion.id")
     @Mapping(target = "userName", source = "companion.nickname")
     @Mapping(target = "avatarUrl", source = "companion.avatarUrl")
     @Mapping(target = "unreadCount", source = "unreadMessages")

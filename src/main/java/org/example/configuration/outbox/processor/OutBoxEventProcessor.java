@@ -1,6 +1,7 @@
 package org.example.configuration.outbox.processor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +14,7 @@ import org.example.event.MessageReadEvent;
 import org.example.event.MessageSentEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,11 +34,15 @@ public class OutBoxEventProcessor {
 
     private final ObjectMapper objectMapper;
 
+    private final RedisTemplate<String, Object> redisTemplate;
+
     @Scheduled(fixedDelay = 1000)
     public void process() {
 
         List<OutboxEvent> events = outBoxEventRepository
                 .findBatchForProcessing(PageRequest.of(0, BATCH_SIZE));
+
+        log.info("Outbox poll started: fetched={} events", events.size());
 
         for (OutboxEvent event : events) {
             try {
@@ -51,6 +57,18 @@ public class OutBoxEventProcessor {
     @Transactional
     public void processSingle(OutboxEvent event) {
         try {
+            String key = "idempotent:" + event.getId();
+            Boolean firstTime = redisTemplate.opsForValue()
+                    .setIfAbsent(key, "1", Duration.ofMinutes(10));
+
+            if (Boolean.FALSE.equals(firstTime)) {
+                log.debug("Skip duplicate outbox event: eventId={}", event.getId());
+
+                event.setProcessed(true);
+                outBoxEventRepository.save(event);
+                return;
+            }
+
             dispatch(event);
             event.setProcessed(true);
             outBoxEventRepository.save(event);
@@ -77,6 +95,8 @@ public class OutBoxEventProcessor {
     private void dispatch(OutboxEvent event) throws Exception {
 
         OutboxEventStatus type = OutboxEventStatus.valueOf(event.getEventType());
+
+        log.debug("Dispatching outbox event: id={}, type={}", event.getId(), event.getEventType());
 
         switch (type) {
 

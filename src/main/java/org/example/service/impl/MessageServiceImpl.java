@@ -68,7 +68,7 @@ public class MessageServiceImpl implements MessageService {
 
         validateUserInChat(chat, senderUser);
 
-        log.info("Opening chat: chatId={}, userId={}", chatId, senderUser.getId());
+        log.info("Opening chat: chatId={}, chatId={}", chatId, senderUser.getId());
 
         redisService.resetUnReadMessages(senderUser.getId(), chatId);
 
@@ -83,10 +83,6 @@ public class MessageServiceImpl implements MessageService {
 
         Chat chat = chatRepository.findById(request.chatId())
                 .orElseThrow(() -> new ChatNotFoundException("Chat not found!"));
-
-        Map<Long, Boolean> participantsOnline = chat.getParticipants().stream()
-                .map(User::getId)
-                .collect(Collectors.toMap(userId -> userId, redisService::isUserOnline));
 
         validateUserInChat(chat, senderUser);
 
@@ -122,6 +118,9 @@ public class MessageServiceImpl implements MessageService {
 
         MessageResponseDto response = messageMapper.toDto(savedMessage);
 
+        Map<Long, Boolean> participantsOnline = chat.getParticipants().stream()
+                .map(User::getId)
+                .collect(Collectors.toMap(userId -> userId, redisService::isUserOnline));
         outBoxEventRepository.save(outBoxEventFactory.messageSent(
                 new MessageSentEvent(chat.getId(), response, participantsOnline)
         ));
@@ -165,7 +164,7 @@ public class MessageServiceImpl implements MessageService {
         validateStatusTransition(message, MessageStatus.DELIVERED);
         message.setStatus(MessageStatus.DELIVERED);
 
-        log.info("Message delivered: messageId={}, userId={}", messageId, currentUser.getId());
+        log.info("Message delivered: messageId={}, chatId={}", messageId, currentUser.getId());
 
         outBoxEventRepository.save(outBoxEventFactory.messageDelivered(
                 new MessageDeliveredEvent(message.getChat().getId(), message.getId(),
@@ -194,7 +193,7 @@ public class MessageServiceImpl implements MessageService {
         validateStatusTransition(message, MessageStatus.READ);
         message.setStatus(MessageStatus.READ);
 
-        log.info("Message read: messageId={}, userId={}", messageId, currentUser.getId());
+        log.info("Message read: messageId={}, chatId={}", messageId, currentUser.getId());
 
         outBoxEventRepository.save(outBoxEventFactory.messageRead(
                 new MessageReadEvent(message.getChat().getId(), currentUser.getId())));
@@ -213,7 +212,7 @@ public class MessageServiceImpl implements MessageService {
 
         if (allMessagesAsRead > 0) {
 
-            log.info("Bulk read: chatId={}, userId={}, count={}",
+            log.info("Bulk read: chatId={}, chatId={}, count={}",
                     chatId, currentUser.getId(), allMessagesAsRead);
 
             redisService.resetUnReadMessages(currentUser.getId(), chatId);
@@ -261,7 +260,11 @@ public class MessageServiceImpl implements MessageService {
 
         redisService.setValue(acknowledgeKey, "1", Duration.ofMinutes(10));
 
-        redisTemplate.opsForSet().add("pending:messages", request.messageId().toString());
+        redisTemplate.opsForSet().remove("pending:messages", request.messageId().toString());
+
+        log.info("ACK received: messageId={}, chatId={}", request.messageId(), request.chatId());
+
+        markAsDeliveredInternal(request.messageId());
     }
 
     private Message getMessageOrThrow(Long messageId) {
@@ -302,10 +305,10 @@ public class MessageServiceImpl implements MessageService {
             return;
         }
 
-        log.warn("Invalid OutboxEventStatus transition: messageId={}, from={}, to={}",
+        log.warn("Invalid message status transition: messageId={}, from={}, to={}",
                 message.getId(), currentStatus, expectedStatus);
 
-        throw new IllegalStateException("Invalid OutboxEventStatus transition: " + currentStatus
+        throw new IllegalStateException("Invalid status transition: " + currentStatus
                 + " -> " + expectedStatus);
     }
 
@@ -329,5 +332,25 @@ public class MessageServiceImpl implements MessageService {
         validateSameChat(parentMessage, chat);
 
         message.setReplyTo(parentMessage);
+    }
+
+    private void markAsDeliveredInternal(Long messageId) {
+
+        Message message = getMessageOrThrow(messageId);
+
+        if (message.getStatus() != MessageStatus.SENT) {
+            return;
+        }
+
+        message.setStatus(MessageStatus.DELIVERED);
+
+        outBoxEventRepository.save(outBoxEventFactory.messageDelivered(
+                        new MessageDeliveredEvent(
+                                message.getChat().getId(),
+                                message.getId(),
+                                message.getSender().getId()
+                        )
+                )
+        );
     }
 }
