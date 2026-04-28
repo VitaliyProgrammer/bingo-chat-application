@@ -135,13 +135,13 @@ public class RedisServiceImpl implements RedisService {
     @Override
     public long getPresenceState(Long userId) {
 
-        return getLongValue(RedisKeys.userPresenceVersion(userId));
+        return getLongValue(RedisKeys.userPresenceState(userId));
     }
 
     @Override
     public long bumpPresenceState(Long userId) {
 
-        String key = RedisKeys.userPresenceVersion(userId);
+        String key = RedisKeys.userPresenceState(userId);
         Long version = redisTemplate.opsForValue().increment(key);
 
         return version == null ? 0L : version;

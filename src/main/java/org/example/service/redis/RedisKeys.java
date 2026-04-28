@@ -22,8 +22,8 @@ public class RedisKeys {
         return "presence:sessions:" + userId;
     }
 
-    public static String userPresenceVersion(Long userId) {
+    public static String userPresenceState(Long userId) {
 
-        return "presence:version:" + userId;
+        return "presence:state:" + userId;
     }
 }

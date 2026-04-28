@@ -118,7 +118,7 @@ public class MessageServiceImpl implements MessageService {
 
         MessageResponseDto response = messageMapper.toDto(savedMessage);
 
-        Map<Long, Boolean> participantsOnline = chat.getParticipants().stream()
+        final Map<Long, Boolean> participantsOnline = chat.getParticipants().stream()
                 .map(User::getId)
                 .collect(Collectors.toMap(userId -> userId, redisService::isUserOnline));
         outBoxEventRepository.save(outBoxEventFactory.messageSent(

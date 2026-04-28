@@ -35,4 +35,6 @@ public interface ChatRepository extends JpaRepository<Chat, Long> {
 
     @Query("SELECT c.lastMessageSequence FROM Chat c WHERE c.id = :chatId")
     Long getCurrentSequence(@Param("chatId") Long chatId);
+
+    boolean existsByIdAndParticipants_Id(Long chatId, Long userId);
 }
