@@ -17,6 +17,7 @@ import org.example.mapper.ChatMapper;
 import org.example.repository.ChatRepository;
 import org.example.repository.UserRepository;
 import org.example.security.CurrentUserProvider;
+import org.example.security.audit.SecurityAuditService;
 import org.example.service.ChatService;
 import org.example.service.RedisService;
 import org.example.service.presence.PresenceTimeFormatter;
@@ -43,6 +44,8 @@ public class ChatServiceImpl implements ChatService {
 
     private final RedisService redisService;
 
+    private final SecurityAuditService securityAuditService;
+
     @Override
     @Transactional
     public ChatResponseDto createPrivateChat(Long receiverId) {
@@ -53,6 +56,8 @@ public class ChatServiceImpl implements ChatService {
         log.info("Creating private chat: senderId={}, receiverId={}", senderId, receiverId);
 
         if (senderId.equals(receiverId)) {
+            securityAuditService.forbiddenChatAccess(senderId, receiverId);
+
             log.warn("User tried to create chat with himself: chatId={}", senderId);
             throw new IllegalStateException("Can`t create chat with yourself!");
         }

@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.security.CustomUserDetailsService;
+import org.example.security.audit.SecurityAuditService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.lang.NonNull;
@@ -32,6 +33,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final CustomUserDetailsService userDetailsService;
 
+    private final SecurityAuditService securityAuditService;
     @Override
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,
@@ -46,8 +48,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
             filterChain.doFilter(request, response);
-        } catch (JwtException e) {
-            log.warn("JWT authentication failed: {}", e.getMessage());
+        } catch (JwtException exception) {
+            securityAuditService.invalidJwtToken("masked", exception.getMessage());
+
+            log.warn("JWT authentication failed: {}", exception.getMessage());
             sendUnauthorizedResponse(response, "Token expired or invalid");
         }
     }

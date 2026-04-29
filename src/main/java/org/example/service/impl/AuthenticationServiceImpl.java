@@ -14,6 +14,7 @@ import org.example.exception.UserRoleNotFoundException;
 import org.example.mapper.UserMapper;
 import org.example.repository.RoleRepository;
 import org.example.repository.UserRepository;
+import org.example.security.audit.SecurityAuditService;
 import org.example.security.jwt.JwtUtil;
 import org.example.service.AuthenticationService;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -32,6 +33,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final PasswordEncoder passwordEncoder;
 
     private final JwtUtil jwtUtil;
+
+    private final SecurityAuditService securityAuditService;
 
     @Override
     @Transactional
@@ -75,6 +78,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .orElseThrow(() -> new AuthenticationException("Invalid email or password!"));
 
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
+
+            securityAuditService.failedLogin(email, "Bad credentials!");
             throw new AuthenticationException("Invalid email or password!");
         }
 
