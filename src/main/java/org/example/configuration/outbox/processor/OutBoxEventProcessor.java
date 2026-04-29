@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.configuration.outbox.entity.OutboxEvent;
 import org.example.configuration.outbox.repository.OutBoxEventRepository;
 import org.example.configuration.outbox.status.OutboxEventStatus;
+import org.example.configuration.scheduler.SchedulerLockManager;
 import org.example.event.MessageDeliveredEvent;
 import org.example.event.MessageReadEvent;
 import org.example.event.MessageSentEvent;
@@ -28,6 +29,8 @@ public class OutBoxEventProcessor {
 
     private static final int MAX_RETRY_COUNT = 10;
 
+    private static final String LOCK_KEY = "outbox:process";
+
     private final OutBoxEventRepository outBoxEventRepository;
 
     private final ApplicationEventPublisher eventPublisher;
@@ -36,21 +39,30 @@ public class OutBoxEventProcessor {
 
     private final RedisTemplate<String, Object> redisTemplate;
 
+    private final SchedulerLockManager schedulerLockManager;
+
     @Scheduled(fixedDelay = 1000)
     public void process() {
 
-        List<OutboxEvent> events = outBoxEventRepository
-                .findBatchForProcessing(PageRequest.of(0, BATCH_SIZE));
+        if (!schedulerLockManager.acquireLock(LOCK_KEY, Duration.ofSeconds(10))) {
+            log.debug("Skip outbox poll: already running");
+            return;
+        }
+        try {
+            List<OutboxEvent> events = outBoxEventRepository
+                    .findBatchForProcessing(PageRequest.of(0, BATCH_SIZE));
 
-        log.info("Outbox poll started: fetched={} events", events.size());
+            log.info("Outbox poll started: fetched={} events", events.size());
 
-        for (OutboxEvent event : events) {
-            try {
-                processSingle(event);
-            } catch (Exception exception) {
-
-                log.error("Outbox processing failed: eventId={}", event.getId(), exception);
+            for (OutboxEvent event : events) {
+                try {
+                    processSingle(event);
+                } catch (Exception exception) {
+                    log.error("Outbox processing failed: eventId={}", event.getId(), exception);
+                }
             }
+        } finally {
+            schedulerLockManager.releaseLock(LOCK_KEY);
         }
     }
 
