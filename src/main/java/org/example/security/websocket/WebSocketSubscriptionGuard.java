@@ -4,6 +4,7 @@ import java.security.Principal;
 import java.time.Duration;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.configuration.metrics.service.ApplicationMetricsService;
 import org.example.repository.ChatRepository;
 import org.example.security.audit.SecurityAuditService;
 import org.example.security.websocket.exception.WebSocketAccessDeniedException;
@@ -26,6 +27,8 @@ public class WebSocketSubscriptionGuard implements ChannelInterceptor {
     private final RedisService redisService;
 
     private final SecurityAuditService securityAuditService;
+
+    private final ApplicationMetricsService metricsService;
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
@@ -60,6 +63,7 @@ public class WebSocketSubscriptionGuard implements ChannelInterceptor {
             if (!allowed) {
                 securityAuditService.webSocketDenied(userId, destination,
                         "No access to chat!");
+                metricsService.incrementWebSocketDenied();
 
                 log.warn("Denied subscribe: userId={}, chatId={}", userId, chatId);
                 throw new WebSocketAccessDeniedException("No access to chat!");

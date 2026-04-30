@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.configuration.metrics.service.ApplicationMetricsService;
 import org.example.configuration.outbox.factory.OutBoxEventFactory;
 import org.example.configuration.outbox.repository.OutBoxEventRepository;
 import org.example.dto.request.MessageAckRequestDto;
@@ -57,6 +58,8 @@ public class MessageServiceImpl implements MessageService {
 
     private final OutBoxEventFactory outBoxEventFactory;
 
+    private final ApplicationMetricsService metricsService;
+
     @Override
     @Transactional
     public void openChat(Long chatId) {
@@ -105,6 +108,7 @@ public class MessageServiceImpl implements MessageService {
         chat.setLastMessageText(savedMessage.getContent());
         chat.setLastActivityTime(LocalDateTime.now());
 
+        metricsService.incrementMessageSent();
         log.info("Message sent: messageId={}, chatId={}, senderId={}",
                 savedMessage.getId(), chat.getId(), senderUser.getId());
 

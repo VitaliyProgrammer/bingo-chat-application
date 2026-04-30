@@ -4,6 +4,7 @@ import java.security.Principal;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.configuration.metrics.service.ApplicationMetricsService;
 import org.example.service.RedisService;
 import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
@@ -19,17 +20,19 @@ public class ConnectEventListener {
 
     private final RedisService redisService;
 
+    private final ApplicationMetricsService metricsService;
+
     @EventListener
     public void onConnect(SessionConnectEvent event) {
 
         extractUserId(event).ifPresent(userId -> {
 
-            long state = redisService.bumpPresenceState(userId);
-
             redisService.incrementSessions(userId);
             redisService.setUserOnline(userId);
+            metricsService.incrementWebSocketConnect();
 
-            log.info("WebSocket connected: userId={}, state={}", userId, state);
+            log.info("WebSocket connected: userId={}, state={}",
+                    userId, redisService.bumpPresenceState(userId));
         });
     }
 
@@ -45,6 +48,7 @@ public class ConnectEventListener {
             }
 
             redisService.setUserOffline(userId);
+            metricsService.incrementWebSocketDisconnect();
             log.info("WebSocket disconnected: userId={}", userId);
         });
     }

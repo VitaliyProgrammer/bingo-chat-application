@@ -1,11 +1,13 @@
 package org.example.configuration.outbox.processor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.core.instrument.Timer;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.configuration.metrics.service.ApplicationMetricsService;
 import org.example.configuration.outbox.entity.OutboxEvent;
 import org.example.configuration.outbox.repository.OutBoxEventRepository;
 import org.example.configuration.outbox.status.OutboxEventStatus;
@@ -41,6 +43,8 @@ public class OutBoxEventProcessor {
 
     private final SchedulerLockManager schedulerLockManager;
 
+    private final ApplicationMetricsService metricsService;
+
     @Scheduled(fixedDelay = 1000)
     public void process() {
 
@@ -48,6 +52,9 @@ public class OutBoxEventProcessor {
             log.debug("Skip outbox poll: already running");
             return;
         }
+
+        Timer.Sample sample = metricsService.startOutboxTimer();
+
         try {
             List<OutboxEvent> events = outBoxEventRepository
                     .findBatchForProcessing(PageRequest.of(0, BATCH_SIZE));
@@ -57,11 +64,16 @@ public class OutBoxEventProcessor {
             for (OutboxEvent event : events) {
                 try {
                     processSingle(event);
+                    metricsService.incrementOutboxProcessed();
                 } catch (Exception exception) {
+
+                    metricsService.incrementOutboxFailed();
                     log.error("Outbox processing failed: eventId={}", event.getId(), exception);
                 }
             }
         } finally {
+            metricsService.stopOutboxTimer(sample);
+
             schedulerLockManager.releaseLock(LOCK_KEY);
         }
     }

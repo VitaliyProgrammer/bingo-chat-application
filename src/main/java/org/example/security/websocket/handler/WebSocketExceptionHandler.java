@@ -3,7 +3,9 @@ package org.example.security.websocket.handler;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.configuration.metrics.service.ApplicationMetricsService;
 import org.example.exception.InvalidJwtTokenException;
 import org.example.exception.JwtTokenExpiredException;
 import org.example.exception.UserNotFoundException;
@@ -16,9 +18,12 @@ import org.springframework.web.socket.messaging.StompSubProtocolErrorHandler;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class WebSocketExceptionHandler extends StompSubProtocolErrorHandler {
 
     private static final String INTERNAL_ERROR = "WEBSOCKET_INTERNAL_ERROR";
+
+    private final ApplicationMetricsService metricsService;
 
     @Override
     public Message<byte[]> handleClientMessageProcessingError(
@@ -31,6 +36,8 @@ public class WebSocketExceptionHandler extends StompSubProtocolErrorHandler {
                 .or(() -> tryHandleExpiredJwtToken(root, clientMessage))
                 .or(() -> tryHandleUserNotFound(root, clientMessage))
                 .orElseGet(() -> {
+                    metricsService.incrementWebSocketError();
+
                     log.error("Unhandled WebSocket error", exception);
                     return buildError(INTERNAL_ERROR, "Internal WebSocket error!",
                             clientMessage);

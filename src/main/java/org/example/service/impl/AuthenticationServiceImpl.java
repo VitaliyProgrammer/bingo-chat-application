@@ -1,6 +1,7 @@
 package org.example.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import org.example.configuration.metrics.service.ApplicationMetricsService;
 import org.example.dto.request.UserLoginRequestDto;
 import org.example.dto.request.UserRegistrationRequestDto;
 import org.example.dto.response.UserLoginResponseDto;
@@ -35,6 +36,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final JwtUtil jwtUtil;
 
     private final SecurityAuditService securityAuditService;
+
+    private final ApplicationMetricsService metricsService;
 
     @Override
     @Transactional
@@ -80,6 +83,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
 
             securityAuditService.failedLogin(email, "Bad credentials!");
+            metricsService.incrementLoginFailed("bad_credentials");
+
             throw new AuthenticationException("Invalid email or password!");
         }
 

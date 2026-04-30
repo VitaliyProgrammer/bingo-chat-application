@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.configuration.metrics.service.ApplicationMetricsService;
 import org.example.security.CustomUserDetailsService;
 import org.example.security.audit.SecurityAuditService;
 import org.springframework.http.HttpHeaders;
@@ -34,6 +35,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final CustomUserDetailsService userDetailsService;
 
     private final SecurityAuditService securityAuditService;
+
+    private final ApplicationMetricsService metricsService;
+
     @Override
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,
@@ -49,7 +53,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             filterChain.doFilter(request, response);
         } catch (JwtException exception) {
+
             securityAuditService.invalidJwtToken("masked", exception.getMessage());
+            metricsService.incrementJwtTokenInvalid("jwt_exception");
 
             log.warn("JWT authentication failed: {}", exception.getMessage());
             sendUnauthorizedResponse(response, "Token expired or invalid");

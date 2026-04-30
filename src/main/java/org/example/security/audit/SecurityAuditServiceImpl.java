@@ -25,7 +25,6 @@ public class SecurityAuditServiceImpl implements SecurityAuditService {
 
     @Override
     public void forbiddenChatAccess(Long userId, Long chatId) {
-        log.warn("SECURITY_AUDIT forbidden_chat_access userId={}, reason={}, reason={}",
-                userId, chatId);
+        log.warn("SECURITY_AUDIT forbidden_chat_access userId={}, reason={}", userId, chatId);
     }
 }
