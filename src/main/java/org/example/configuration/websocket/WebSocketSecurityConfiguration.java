@@ -11,6 +11,7 @@ public class WebSocketSecurityConfiguration implements WebSocketMessageBrokerCon
 
     private final WebSocketAuthInterceptor interceptor;
 
+    @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
         registration.interceptors(interceptor);
     }

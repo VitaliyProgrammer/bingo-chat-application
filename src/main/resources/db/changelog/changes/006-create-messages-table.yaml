@@ -1,0 +1,116 @@
+databaseChangeLog:
+  - changeSet:
+      id: messages
+      author: vitaliy
+      changes:
+
+        - createTable:
+            tableName: messages
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+
+              - column:
+                  name: chat_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: sender_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: content
+                  type: VARCHAR(2000)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: status
+                  type: VARCHAR(50)
+
+              - column:
+                  name: created_at
+                  type: DATETIME
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: reply_to_message_id
+                  type: BIGINT
+
+              - column:
+                  name: sequence
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: is_pinned
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: edited_at
+                  type: DATETIME
+
+              - column:
+                  name: reminder_at
+                  type: DATETIME
+
+        - addUniqueConstraint:
+          columnNames: chat_id, sequence
+          tableName: messages
+
+        - createIndex:
+            tableName: messages
+            indexName: idx_messages_chat_sequence
+            columns:
+              - column:
+                  name: chat_id
+              - column:
+                  name: sequence
+
+        - createIndex:
+            tableName: messages
+            indexName: idx_messages_sender
+            columns:
+              - column:
+                  name: sender_id
+
+        - createIndex:
+            tableName: messages
+            indexName: idx_messages_reminder_at
+            columns:
+              - column:
+                  name: reminder_at
+
+        - addForeignKeyConstraint:
+            baseTableName: messages
+            baseColumnNames: chat_id
+            referencedTableName: chats
+            referencedColumnNames: id
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            baseTableName: messages
+            baseColumnNames: sender_id
+            referencedTableName: users
+            referencedColumnNames: id
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            baseTableName: messages
+            baseColumnNames: reply_to_message_id
+            referencedTableName: messages
+            referencedColumnNames: id
+            onDelete: SET NULL

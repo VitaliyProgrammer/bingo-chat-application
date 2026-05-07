@@ -7,6 +7,7 @@ import org.example.configuration.outbox.entity.OutboxEvent;
 import org.example.configuration.outbox.status.OutboxEventStatus;
 import org.example.event.MessageDeliveredEvent;
 import org.example.event.MessageReadEvent;
+import org.example.event.MessageReminderEvent;
 import org.example.event.MessageSentEvent;
 import org.springframework.stereotype.Component;
 
@@ -41,6 +42,15 @@ public class OutBoxEventFactory {
         return build(
                 event.chatId(),
                 OutboxEventStatus.MESSAGE_READ,
+                event
+        );
+    }
+
+    public OutboxEvent messageReminded(MessageReminderEvent event) {
+
+        return build(
+                event.chatId(),
+                OutboxEventStatus.MESSAGE_REMINDED,
                 event
         );
     }

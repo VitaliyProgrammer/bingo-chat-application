@@ -49,6 +49,9 @@ public class Chat {
     @Column(name = "last_message_sequence", nullable = false)
     private Long lastMessageSequence = 0L;
 
+    @Column(name = "owner_Id", nullable = false)
+    private Long ownerId;
+
     @ManyToMany
     @JoinTable(name = "chat_participants",
             joinColumns = @JoinColumn(name = "chat_id"),

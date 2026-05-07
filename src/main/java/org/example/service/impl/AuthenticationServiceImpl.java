@@ -6,13 +6,16 @@ import org.example.dto.request.UserLoginRequestDto;
 import org.example.dto.request.UserRegistrationRequestDto;
 import org.example.dto.response.UserLoginResponseDto;
 import org.example.dto.response.UserRegistrationResponseDto;
+import org.example.entity.Chat;
 import org.example.entity.Role;
 import org.example.entity.User;
 import org.example.entity.role.RoleName;
+import org.example.entity.status.ChatType;
 import org.example.exception.AuthenticationException;
 import org.example.exception.RegistrationException;
 import org.example.exception.UserRoleNotFoundException;
 import org.example.mapper.UserMapper;
+import org.example.repository.ChatRepository;
 import org.example.repository.RoleRepository;
 import org.example.repository.UserRepository;
 import org.example.security.audit.SecurityAuditService;
@@ -25,9 +28,12 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class AuthenticationServiceImpl implements AuthenticationService {
+
     private final UserRepository userRepository;
 
     private final RoleRepository roleRepository;
+
+    private final ChatRepository chatRepository;
 
     private final UserMapper userMapper;
 
@@ -69,6 +75,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         User savedUser = userRepository.save(user);
 
+        createSelfChat(savedUser);
+
         return userMapper.toRegistrationDto(savedUser);
     }
 
@@ -93,5 +101,24 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 user.getRoles().stream().map(role -> role.getRoleName().name()).toList());
 
         return new UserLoginResponseDto(token);
+    }
+
+    private void createSelfChat(User savedUser) {
+
+        if (chatRepository.existsByOwnerIdAndChatType(savedUser.getId(), ChatType.SELF)) {
+            return;
+        }
+
+        Chat selfChat = new Chat();
+
+        selfChat.setChatType(ChatType.SELF);
+
+        selfChat.getParticipants().add(savedUser);
+
+        selfChat.setOwnerId(savedUser.getId());
+
+        selfChat.setLastMessageText(null);
+
+        chatRepository.save(selfChat);
     }
 }

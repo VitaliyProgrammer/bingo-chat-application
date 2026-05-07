@@ -10,6 +10,7 @@ import org.example.configuration.metrics.service.ApplicationMetricsService;
 import org.example.configuration.outbox.factory.OutBoxEventFactory;
 import org.example.configuration.outbox.repository.OutBoxEventRepository;
 import org.example.dto.request.MessageAckRequestDto;
+import org.example.dto.request.MessageReminderRequestDto;
 import org.example.dto.request.MessageRequestDto;
 import org.example.dto.response.MessagePageResponseDto;
 import org.example.dto.response.MessageResponseDto;
@@ -19,6 +20,7 @@ import org.example.entity.User;
 import org.example.entity.status.MessageStatus;
 import org.example.event.MessageDeliveredEvent;
 import org.example.event.MessageReadEvent;
+import org.example.event.MessageReminderEvent;
 import org.example.event.MessageSentEvent;
 import org.example.exception.ChatNotFoundException;
 import org.example.exception.ForbiddenActionException;
@@ -125,6 +127,7 @@ public class MessageServiceImpl implements MessageService {
         final Map<Long, Boolean> participantsOnline = chat.getParticipants().stream()
                 .map(User::getId)
                 .collect(Collectors.toMap(userId -> userId, redisService::isUserOnline));
+
         outBoxEventRepository.save(outBoxEventFactory.messageSent(
                 new MessageSentEvent(chat.getId(), response, participantsOnline)
         ));
@@ -143,6 +146,8 @@ public class MessageServiceImpl implements MessageService {
         validateMessageOwner(message, user);
 
         message.setContent(newContent);
+
+        message.setEditedAt(LocalDateTime.now());
 
         return messageMapper.toDto(message);
     }
@@ -269,6 +274,36 @@ public class MessageServiceImpl implements MessageService {
         log.info("ACK received: messageId={}, chatId={}", request.messageId(), request.chatId());
 
         markAsDeliveredInternal(request.messageId());
+    }
+
+    @Override
+    @Transactional
+    public MessageResponseDto pinMessage(Long messageId) {
+
+        Message message = getMessageOrThrow(messageId);
+
+        validateMessageOwner(message, currentUserProvider.getAuthenticatedUser());
+
+        message.setIsPinned(true);
+
+        return messageMapper.toDto(message);
+    }
+
+    @Override
+    @Transactional
+    public MessageResponseDto setReminder(MessageReminderRequestDto request) {
+
+        Message message = getMessageOrThrow(request.messageId());
+
+        validateMessageOwner(message, currentUserProvider.getAuthenticatedUser());
+
+        message.setReminderAt(request.reminderAt());
+
+        outBoxEventRepository.save(outBoxEventFactory.messageReminded(new MessageReminderEvent(
+                message.getId(), currentUserProvider.getAuthenticatedUser().getId(),
+                message.getChat().getId(), message.getContent(), request.reminderAt())));
+
+        return messageMapper.toDto(message);
     }
 
     private Message getMessageOrThrow(Long messageId) {

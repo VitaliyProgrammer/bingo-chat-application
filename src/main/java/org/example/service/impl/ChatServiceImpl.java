@@ -135,6 +135,26 @@ public class ChatServiceImpl implements ChatService {
     private ChatListItemResponseDto mapToChatListItem(Chat chat, Long currentUserId,
                                                       Locale locale) {
 
+        int unreadCount = redisService.getUnreadMessages(currentUserId, chat.getId());
+
+        String lastMessage = Optional.ofNullable(chat.getLastMessageText()).orElse("");
+
+        if (chat.getChatType() == ChatType.SELF) {
+
+            return new ChatListItemResponseDto(
+                    chat.getId(),
+                    currentUserId,
+                    "Saved Messages",
+                    "/images/system/saved-messages.png",
+                    lastMessage,
+                    unreadCount,
+                    "Personal notes",
+                    false,
+                    true,
+                    chat.getLastActivityTime()
+            );
+        }
+
         User companion = chat.getParticipants().stream()
                 .filter(user -> !user.getId().equals(currentUserId))
                 .findFirst()
@@ -150,10 +170,6 @@ public class ChatServiceImpl implements ChatService {
 
         String presenceStatus = getPresenceUser(companionId, isOnline, locale);
 
-        int unreadCount = redisService.getUnreadMessages(currentUserId, chat.getId());
-
-        String lastMessage = Optional.ofNullable(chat.getLastMessageText()).orElse("");
-
         log.debug("ChatListItem: chatId={}, companionId={}, unread={}, online={}",
                 chat.getId(), companionId, unreadCount, isOnline);
 
@@ -161,10 +177,54 @@ public class ChatServiceImpl implements ChatService {
                 unreadCount, presenceStatus, isOnline);
     }
 
+    @Override
+    @Transactional
+    public ChatResponseDto createSelfChat() {
+
+        User currentUser = currentUserProvider.getAuthenticatedUser();
+
+        Optional<Chat> existingChat = chatRepository.findSelfChat(currentUser.getId());
+
+        if (existingChat.isPresent()) {
+            return chatMapper.toDto(existingChat.get(), timeFormatter, currentLocale());
+        }
+
+        Chat chat = new Chat();
+        chat.setChatType(ChatType.PRIVATE);
+
+        chat.getParticipants().add(currentUser);
+
+        Chat savedChat = chatRepository.save(chat);
+
+        return chatMapper.toDto(savedChat, timeFormatter, currentLocale());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ChatResponseDto getSelfChat() {
+
+        User currentUser = currentUserProvider.getAuthenticatedUser();
+
+        Locale locale = currentLocale();
+
+        Chat selfChat = chatRepository
+                .findByOwnerIdAndChatType(currentUser.getId(), ChatType.SELF)
+                .orElseThrow(() -> {
+                    log.error("SELF chat not found for userId={}", currentUser.getId());
+
+                    return new IllegalStateException("SELF chat not found!");
+                });
+
+        log.debug("SELF chat fetched: chatId={}, userId={}", selfChat.getId(), currentUser.getId());
+
+        return chatMapper.toDto(selfChat, timeFormatter, locale);
+    }
+
     private Comparator<ChatListItemResponseDto> chatComparator() {
 
         return Comparator
-                .comparing(ChatListItemResponseDto::isOnline, Comparator.reverseOrder())
+                .comparing(ChatListItemResponseDto::selfChat, Comparator.reverseOrder())
+                .thenComparing(ChatListItemResponseDto::isOnline, Comparator.reverseOrder())
                 .thenComparing(ChatListItemResponseDto::lastActivityTime,
                         Comparator.nullsLast(Comparator.reverseOrder()));
     }

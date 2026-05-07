@@ -61,6 +61,15 @@ public class Message {
     @Column(name = "sequence", nullable = false)
     private Long sequence;
 
+    @Column(name = "is_pinned", nullable = false)
+    private Boolean isPinned = false;
+
+    @Column(name = "edited_at")
+    private LocalDateTime editedAt;
+
+    @Column(name = "reminder_at")
+    private LocalDateTime reminderAt;
+
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();

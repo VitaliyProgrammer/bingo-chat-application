@@ -47,4 +47,12 @@ public class ChatController {
         return chatService.getMyChatList();
     }
 
+    @GetMapping("/self")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Get self chat", description = "Get personal self chat for "
+            + "current authenticated user")
+    public ChatResponseDto getSelfChat() {
+
+        return chatService.getSelfChat();
+    }
 }

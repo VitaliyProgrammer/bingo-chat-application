@@ -3,6 +3,7 @@ package org.example.repository;
 import java.util.List;
 import java.util.Optional;
 import org.example.entity.Chat;
+import org.example.entity.status.ChatType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -37,4 +38,17 @@ public interface ChatRepository extends JpaRepository<Chat, Long> {
     Long getCurrentSequence(@Param("chatId") Long chatId);
 
     boolean existsByIdAndParticipants_Id(Long chatId, Long userId);
+
+    @Query("""
+            SELECT c FROM Chat c
+            JOIN c.participants p
+            WHERE p.id = :userId
+            GROUP BY c.id
+            HAVING COUNT(p) = 1
+            """)
+    Optional<Chat> findSelfChat(Long chatId);
+
+    boolean existsByOwnerIdAndChatType(Long ownerId, ChatType chatType);
+
+    Optional<Chat> findByOwnerIdAndChatType(Long ownerId, ChatType chatType);
 }

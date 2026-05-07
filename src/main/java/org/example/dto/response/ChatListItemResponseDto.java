@@ -11,6 +11,7 @@ public record ChatListItemResponseDto(
         int unreadCount,
         String presenceStatus,
         boolean isOnline,
+        boolean selfChat,
         LocalDateTime lastActivityTime
 ) {
 }

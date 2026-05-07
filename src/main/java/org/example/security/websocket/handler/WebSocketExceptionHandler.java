@@ -22,7 +22,10 @@ import org.springframework.web.socket.messaging.StompSubProtocolErrorHandler;
 public class WebSocketExceptionHandler extends StompSubProtocolErrorHandler {
 
     private static final String INTERNAL_ERROR = "WEBSOCKET_INTERNAL_ERROR";
-
+    private static final String WEBSOCKET_FORBIDDEN = "WEBSOCKET_FORBIDDEN";
+    private static final String WEBSOCKET_JWT_TOKEN_INVALID = "WEBSOCKET_JWT_TOKEN_INVALID";
+    private static final String WEBSOCKET_JWT_TOKEN_EXPIRED = "WEBSOCKET_JWT_TOKEN_EXPIRED";
+    private static final String WEBSOCKET_USER_NOT_FOUND = "WEBSOCKET_USER_NOT_FOUND";
     private final ApplicationMetricsService metricsService;
 
     @Override
@@ -48,7 +51,7 @@ public class WebSocketExceptionHandler extends StompSubProtocolErrorHandler {
                                                             Message<byte[]> clientMessage) {
 
         if (root instanceof WebSocketAccessDeniedException exception) {
-            return Optional.of(buildError("WEBSOCKET_FORBIDDEN", exception.getMessage(),
+            return Optional.of(buildError(WEBSOCKET_FORBIDDEN, exception.getMessage(),
                     clientMessage));
         }
         return Optional.empty();
@@ -58,7 +61,7 @@ public class WebSocketExceptionHandler extends StompSubProtocolErrorHandler {
                                                                Message<byte[]> clientMessage) {
 
         if (root instanceof InvalidJwtTokenException exception) {
-            return Optional.of(buildError("WEBSOCKET_INVALID_JWT_TOKEN", exception.getMessage(),
+            return Optional.of(buildError(WEBSOCKET_JWT_TOKEN_INVALID, exception.getMessage(),
                     clientMessage));
         }
         return Optional.empty();
@@ -68,7 +71,7 @@ public class WebSocketExceptionHandler extends StompSubProtocolErrorHandler {
                                                                Message<byte[]> clientMessage) {
 
         if (root instanceof JwtTokenExpiredException exception) {
-            return Optional.of(buildError("WEBSOCKET_JWT_TOKEN_EXPIRED", exception.getMessage(),
+            return Optional.of(buildError(WEBSOCKET_JWT_TOKEN_EXPIRED, exception.getMessage(),
                     clientMessage));
         }
         return Optional.empty();
@@ -78,7 +81,7 @@ public class WebSocketExceptionHandler extends StompSubProtocolErrorHandler {
                                                             Message<byte[]> clientMessage) {
 
         if (root instanceof UserNotFoundException exception) {
-            return Optional.of(buildError("WEBSOCKET_USER_NOT_FOUND", exception.getMessage(),
+            return Optional.of(buildError(WEBSOCKET_USER_NOT_FOUND, exception.getMessage(),
                     clientMessage));
         }
         return Optional.empty();

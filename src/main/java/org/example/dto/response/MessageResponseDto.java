@@ -10,6 +10,9 @@ public record MessageResponseDto(
         String content,
         MessageStatus status,
         LocalDateTime createdAt,
-        Long replyToMessageId
+        Long replyToMessageId,
+        Boolean isPinned,
+        LocalDateTime editedAt,
+        LocalDateTime reminderAt
 ) {
 }

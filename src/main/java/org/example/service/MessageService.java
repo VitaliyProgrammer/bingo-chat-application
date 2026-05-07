@@ -1,6 +1,7 @@
 package org.example.service;
 
 import org.example.dto.request.MessageAckRequestDto;
+import org.example.dto.request.MessageReminderRequestDto;
 import org.example.dto.request.MessageRequestDto;
 import org.example.dto.response.MessagePageResponseDto;
 import org.example.dto.response.MessageResponseDto;
@@ -23,4 +24,8 @@ public interface MessageService {
     MessagePageResponseDto getChatMessages(Long chatId, int page, int size);
 
     void acknowledge(MessageAckRequestDto request);
+
+    MessageResponseDto pinMessage(Long messageId);
+
+    MessageResponseDto setReminder(MessageReminderRequestDto request);
 }
