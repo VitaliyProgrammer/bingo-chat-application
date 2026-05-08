@@ -35,6 +35,12 @@ databaseChangeLog:
                     nullable: false
 
               - column:
+                  name: status
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+
+              - column:
                   name: message
                   type: VARCHAR(5000)
                   constraints:

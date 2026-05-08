@@ -17,6 +17,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.example.entity.status.FeedbackStatus;
 import org.example.entity.type.FeedbackType;
 
 @Entity
@@ -42,6 +43,10 @@ public class Feedback {
     @Column(nullable = false, length = 50)
     private FeedbackType type;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 50)
+    private FeedbackStatus status;
+
     @Column(length = 5000, nullable = false)
     private String message;
 
@@ -50,6 +55,8 @@ public class Feedback {
 
     @PrePersist
     public void prePersist() {
+
         this.createdAt = LocalDateTime.now();
+        this.status = FeedbackStatus.NEW;
     }
 }
