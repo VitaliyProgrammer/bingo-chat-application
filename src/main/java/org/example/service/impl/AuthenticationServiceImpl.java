@@ -10,7 +10,7 @@ import org.example.entity.Chat;
 import org.example.entity.Role;
 import org.example.entity.User;
 import org.example.entity.role.RoleName;
-import org.example.entity.status.ChatType;
+import org.example.entity.type.ChatType;
 import org.example.exception.AuthenticationException;
 import org.example.exception.RegistrationException;
 import org.example.exception.UserRoleNotFoundException;

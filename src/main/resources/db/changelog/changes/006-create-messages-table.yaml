@@ -68,8 +68,9 @@ databaseChangeLog:
                   type: DATETIME
 
         - addUniqueConstraint:
-          columnNames: chat_id, sequence
-          tableName: messages
+            tableName: messages
+            columnNames: chat_id, sequence
+            constraintName: uk_messages_chat_sequence
 
         - createIndex:
             tableName: messages
@@ -99,6 +100,7 @@ databaseChangeLog:
             baseColumnNames: chat_id
             referencedTableName: chats
             referencedColumnNames: id
+            constraintName: fk_messages_chat
             onDelete: CASCADE
 
         - addForeignKeyConstraint:
@@ -106,6 +108,7 @@ databaseChangeLog:
             baseColumnNames: sender_id
             referencedTableName: users
             referencedColumnNames: id
+            constraintName: fk_messages_user
             onDelete: CASCADE
 
         - addForeignKeyConstraint:
@@ -113,4 +116,5 @@ databaseChangeLog:
             baseColumnNames: reply_to_message_id
             referencedTableName: messages
             referencedColumnNames: id
+            constraintName: fk_messages_reply
             onDelete: SET NULL

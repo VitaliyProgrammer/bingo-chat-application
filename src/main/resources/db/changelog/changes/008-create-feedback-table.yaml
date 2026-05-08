@@ -1,0 +1,70 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-feedback-table
+      author: vitaliy
+      changes:
+
+        - createTable:
+            tableName: feedback
+            columns:
+
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: email_snapshot
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: type
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: message
+                  type: VARCHAR(5000)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: created_at
+                  type: DATETIME
+                  constraints:
+                    nullable: false
+
+
+        - createIndex:
+            tableName: feedback
+            indexName: idx_feedback_created_at
+            columns:
+              - column:
+                  name: created_at
+
+        - createIndex:
+            tableName: messages
+            indexName: idx_feedback_type
+            columns:
+              - column:
+                  name: type
+
+        - addForeignKeyConstraint:
+            baseTableName: feedback
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_feedback_user
+            onDelete: CASCADE

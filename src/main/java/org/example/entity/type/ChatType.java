@@ -1,4 +1,4 @@
-package org.example.entity.status;
+package org.example.entity.type;
 
 public enum ChatType {
     PRIVATE,

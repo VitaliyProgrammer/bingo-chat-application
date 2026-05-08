@@ -3,7 +3,7 @@ package org.example.repository;
 import java.util.List;
 import java.util.Optional;
 import org.example.entity.Chat;
-import org.example.entity.status.ChatType;
+import org.example.entity.type.ChatType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;

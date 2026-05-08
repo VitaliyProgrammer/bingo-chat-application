@@ -2,7 +2,7 @@ package org.example.dto.response;
 
 import java.time.LocalDateTime;
 import java.util.Set;
-import org.example.entity.status.ChatType;
+import org.example.entity.type.ChatType;
 
 public record ChatResponseDto(
         Long id,

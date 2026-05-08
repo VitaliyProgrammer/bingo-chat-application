@@ -10,7 +10,7 @@ import org.example.dto.response.ChatListItemResponseDto;
 import org.example.dto.response.ChatResponseDto;
 import org.example.entity.Chat;
 import org.example.entity.User;
-import org.example.entity.status.ChatType;
+import org.example.entity.type.ChatType;
 import org.example.exception.UserNotFoundException;
 import org.example.mapper.ChatListMapper;
 import org.example.mapper.ChatMapper;

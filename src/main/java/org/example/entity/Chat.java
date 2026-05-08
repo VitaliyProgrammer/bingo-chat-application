@@ -19,7 +19,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.example.entity.status.ChatType;
+import org.example.entity.type.ChatType;
 
 @Entity
 @Table(name = "chats")

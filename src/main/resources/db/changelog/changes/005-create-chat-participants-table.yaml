@@ -35,6 +35,7 @@ databaseChangeLog:
             baseColumnNames: chat_id
             referencedTableName: chats
             referencedColumnNames: id
+            constraintName: fk_chat_participants_chat
             onDelete: CASCADE
 
         - addForeignKeyConstraint:
@@ -42,4 +43,5 @@ databaseChangeLog:
             baseColumnNames: user_id
             referencedTableName: users
             referencedColumnNames: id
+            constraintName: fk_chat_participants_user
             onDelete: CASCADE
