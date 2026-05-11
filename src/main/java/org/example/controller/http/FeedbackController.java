@@ -2,6 +2,7 @@ package org.example.controller.http;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.dto.request.FeedbackRequestDto;
 import org.example.dto.response.FeedbackResponseDto;
@@ -26,7 +27,7 @@ public class FeedbackController {
     @Operation(summary = "Send feedback message",
             description = "Allows authenticated users to send message feedback message "
                     + "about the bugs, questions and feature suggestions")
-    public FeedbackResponseDto createFeedBack(@RequestBody FeedbackRequestDto request) {
+    public FeedbackResponseDto createFeedBack(@Valid @RequestBody FeedbackRequestDto request) {
 
         return feedbackService.createFeedback(request);
     }

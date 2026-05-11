@@ -2,6 +2,7 @@ package org.example.controller.http;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.dto.request.MessageRequestDto;
 import org.example.dto.response.MessagePageResponseDto;
@@ -31,7 +32,7 @@ public class MessageController {
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Send message",
             description = "Send message to a chat")
-    public MessageResponseDto sendMessage(@RequestBody MessageRequestDto request) {
+    public MessageResponseDto sendMessage(@Valid @RequestBody MessageRequestDto request) {
 
         return messageService.sendMessage(request);
     }

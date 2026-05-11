@@ -2,6 +2,7 @@ package org.example.controller.http;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.dto.request.MessageReminderRequestDto;
 import org.example.dto.response.ChatResponseDto;
@@ -47,7 +48,8 @@ public class NoteController {
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Create reminder for the message",
             description = "Create reminder for selected message")
-    public MessageResponseDto reminderMessage(@RequestBody MessageReminderRequestDto request) {
+    public MessageResponseDto reminderMessage(
+            @Valid @RequestBody MessageReminderRequestDto request) {
 
         return messageService.setReminder(request);
     }

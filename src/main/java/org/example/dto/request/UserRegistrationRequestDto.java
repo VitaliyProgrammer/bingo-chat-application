@@ -9,6 +9,7 @@ import org.example.validation.PasswordMatch;
 public record UserRegistrationRequestDto(
         @Email(message = "{email.invalid}")
         @NotBlank(message = "{email.notBlank}")
+        @Size(max = 255, message = "{email.size}")
         String email,
 
         @NotBlank(message = "{password.notBlank}")
@@ -19,12 +20,15 @@ public record UserRegistrationRequestDto(
         String repeatPassword,
 
         @NotBlank(message = "{firstName.notBlank}")
+        @Size(min = 2, max = 50, message = "{firstName.size}")
         String firstName,
 
         @NotBlank(message = "{lastName.notBlank}")
+        @Size(min = 2, max = 50, message = "{lastName.size}")
         String lastName,
 
         @NotBlank(message = "{nickName.notBlank}")
+        @Size(min = 2, max = 50, message = "{nickName.size}")
         String nickName
 ) {
 }
