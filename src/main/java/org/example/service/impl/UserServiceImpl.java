@@ -22,9 +22,9 @@ public class UserServiceImpl implements UserService {
     private final CurrentUserProvider currentUserProvider;
 
     @Override
-    public List<UserSearchResponseDto> searchByNickName(String nickname) {
+    public List<UserSearchResponseDto> searchByNickname(String nickname) {
 
-        return userRepository.findByNickNameContainingIgnoreCase(nickname).stream()
+        return userRepository.findByNicknameContainingIgnoreCase(nickname).stream()
                 .map(userMapper::toSearchDto)
                 .toList();
     }

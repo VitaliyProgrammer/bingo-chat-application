@@ -57,8 +57,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             throw new RegistrationException("Email already exists!");
         }
 
-        if (userRepository.existsByNickName(nickname)) {
-            throw new RegistrationException("NickName already exists!");
+        if (userRepository.existsByNickname(nickname)) {
+            throw new RegistrationException("Nickname already exists!");
         }
 
         Role userRole = roleRepository.findByRoleName(RoleName.USER)

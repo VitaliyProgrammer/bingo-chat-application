@@ -20,6 +20,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.example.entity.type.ChatType;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "chats")
@@ -34,6 +36,7 @@ public class Chat {
     private Long id;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(nullable = false)
     private ChatType chatType;
 
@@ -63,10 +66,5 @@ public class Chat {
     public void create() {
         this.createdAt = LocalDateTime.now();
         this.lastActivityTime = LocalDateTime.now();
-    }
-
-    public Long nextSequence() {
-        this.lastMessageSequence++;
-        return this.lastMessageSequence;
     }
 }

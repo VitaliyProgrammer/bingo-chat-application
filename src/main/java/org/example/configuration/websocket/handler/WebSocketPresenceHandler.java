@@ -1,6 +1,7 @@
 package org.example.configuration.websocket.handler;
 
 import lombok.RequiredArgsConstructor;
+import org.example.configuration.websocket.WebSocketPrincipal;
 import org.example.service.RedisService;
 import org.springframework.context.ApplicationListener;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
@@ -18,8 +19,11 @@ public class WebSocketPresenceHandler implements ApplicationListener<SessionConn
 
         StompHeaderAccessor accessor = StompHeaderAccessor.wrap(event.getMessage());
 
-        String userId = accessor.getUser().getName();
+        if (accessor.getUser() instanceof WebSocketPrincipal principal) {
 
-        redisService.setUserOnline(Long.valueOf(userId));
+            Long userId = principal.userId();
+
+            redisService.setUserOnline(userId);
+        }
     }
 }

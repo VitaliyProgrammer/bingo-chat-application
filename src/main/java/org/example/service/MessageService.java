@@ -1,5 +1,6 @@
 package org.example.service;
 
+import java.security.Principal;
 import org.example.dto.request.MessageAckRequestDto;
 import org.example.dto.request.MessageReminderRequestDto;
 import org.example.dto.request.MessageRequestDto;
@@ -10,6 +11,8 @@ public interface MessageService {
     void openChat(Long chatId);
 
     MessageResponseDto sendMessage(MessageRequestDto request);
+
+    MessageResponseDto sendMessage(MessageRequestDto request, Principal principal);
 
     MessageResponseDto editMessage(Long messageId, String newContent);
 

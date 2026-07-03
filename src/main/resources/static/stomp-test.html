@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>STOMP Test Client</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        input, button { margin: 5px; padding: 8px; }
+        #log { border: 1px solid #ccc; padding: 10px; height: 300px; overflow: auto; }
+
+
+    </style>
+</head>
+
+<body>
+
+<h2>WebSocket STOMP Test</h2>
+
+<div style="background: #f0f0f0; padding: 10px; margin-bottom: 10px;">
+    <h3>Authentication</h3>
+    <input id="email" placeholder="email" value="john.doe@gmail.com" style="width: 200px;"/>
+    <input id="password" placeholder="password" type="password" value="password123" style="width: 150px;"/>
+    <button onclick="login()">Login & Get JWT</button>
+    <div id="tokenInfo" style="margin-top: 5px; font-size: 12px; color: green;"></div>
+</div>
+
+<button onclick="connect()">Connect WebSocket</button>
+<button onclick="disconnect()">Disconnect</button>
+
+<hr>
+
+<input id="chatId" placeholder="chatId"/>
+<input id="message" placeholder="message"/>
+<button onclick="sendMessage()">Send Message</button>
+
+<hr>
+
+<input id="subscribeChatId" placeholder="subscribe chatId"/>
+<button onclick="subscribeChat()">Subscribe</button>
+
+<hr>
+
+<div id="log"></div>
+
+<script>
+
+    let stompClient = null;
+    let jwtToken = localStorage.getItem('jwt_token') || "";
+
+    function log(msg) {
+        document.getElementById("log").innerHTML += msg + "<br/>";
+    }
+
+    // Login to get fresh JWT token
+    async function login() {
+        const email = document.getElementById("email").value;
+        const password = document.getElementById("password").value;
+
+        try {
+            const response = await fetch('http://localhost:8080/auth/authentication', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                jwtToken = data.token; // adjust based on your response structure
+                localStorage.setItem('jwt_token', jwtToken);
+
+                document.getElementById("tokenInfo").innerHTML =
+                    "✅ JWT token received! Expires in 24h. User: " + email;
+                log("✅ Logged in as: " + email);
+            } else {
+                document.getElementById("tokenInfo").innerHTML =
+                    "❌ Login failed: " + response.status;
+                log("❌ Login failed");
+            }
+        } catch (error) {
+            log("❌ Login error: " + error);
+        }
+    }
+
+    function connect() {
+        if (!jwtToken) {
+            log("❌ No JWT token! Please login first.");
+            return;
+        }
+
+        log("Opening WebSocket connection...");
+
+        const socket = new WebSocket('ws://localhost:8080/websocket');
+
+        stompClient = Stomp.over(socket);
+
+        stompClient.debug = null;
+
+        stompClient.connect(
+
+            {
+                Authorization: "Bearer " + jwtToken
+            },
+
+            function (frame) {
+
+                log("STOMP CONNECTED");
+                log(frame);
+
+            },
+
+            function (error) {
+
+                log("STOMP ERROR:");
+                log(error);
+
+            }
+        );
+    }
+
+    function disconnect() {
+
+        if (stompClient !== null) {
+
+            stompClient.disconnect(function () {
+
+                log("DISCONNECTED");
+
+            });
+        }
+    }
+
+    function subscribeChat() {
+
+        const chatId = document.getElementById("subscribeChatId").value;
+
+        stompClient.subscribe(
+            "/topic/chat/" + chatId,
+
+            function (message) {
+
+                log("MESSAGE RECEIVED:");
+                log(message.body);
+
+            }
+        );
+
+        log("Subscribed to /topic/chat/" + chatId);
+    }
+
+    function sendMessage() {
+
+        const chatId = document.getElementById("chatId").value;
+        const message = document.getElementById("message").value;
+
+        stompClient.send(
+
+            "/app/chat.send",
+
+            {},
+
+            JSON.stringify({
+                chatId: Number(chatId),
+                content: message,
+                replyToMessageId: null
+            })
+        );
+
+        log("MESSAGE SENT: " + message);
+    }
+
+
+</script>
+
+</body>
+</html>

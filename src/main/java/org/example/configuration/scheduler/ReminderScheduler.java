@@ -32,6 +32,7 @@ public class ReminderScheduler {
     private final SchedulerLockManager schedulerLockManager;
 
     @Scheduled(fixedDelay = 30000)
+    @Transactional
     public void processReminders() {
 
         boolean acquired = schedulerLockManager.acquireLock(
@@ -62,7 +63,6 @@ public class ReminderScheduler {
         }
     }
 
-    @Transactional
     public void processReminderEvent(OutboxEvent event) {
 
         try {

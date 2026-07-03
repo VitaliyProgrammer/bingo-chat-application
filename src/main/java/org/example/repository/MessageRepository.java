@@ -27,12 +27,12 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     @Query("SELECT m FROM Message m WHERE m.chat.id = :chatId ORDER BY m.sequence ASC")
     Page<Message> findAllByChatIdOrdered(Long chatId, Pageable pageable);
 
-    @Query(""" 
+    @Query("""
             SELECT m FROM Message m
             WHERE m.reminderAt IS NOT NULL
             AND m.reminderAt <= CURRENT_TIMESTAMP
             """)
     List<Message> findMessagesForReminder();
 
-    List<Message> findAllByChatIdIsPinnedTrue(Long chatId);
+    List<Message> findAllByChatIdAndIsPinnedTrue(Long chatId);
 }

@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class RedisServiceImpl implements RedisService {
 
-    //private static final Duration DURATION_TTL = Duration.ofHours(12);
     private final RedisTemplate<String, Object> redisTemplate;
 
     public void setValue(String key, String value, Duration ttl) {

@@ -15,3 +15,7 @@ databaseChangeLog:
       file: db/changelog/changes/007-create-outbox-event-table.yaml
   - include:
       file: db/changelog/changes/008-create-feedback-table.yaml
+  - include:
+      file: db/changelog/changes/009-create-seed-roles.yaml
+  - include:
+      file: db/changelog/changes/010-add-sequence-generator-function.yaml

@@ -32,10 +32,10 @@ public class UserController {
 
     @GetMapping("/search")
     @ResponseStatus(HttpStatus.OK)
-    @Operation(summary = "Search users by nickName",
+    @Operation(summary = "Search users by nickname",
             description = "Search users using nickname with partial matching")
     public List<UserSearchResponseDto> searchProfile(String nickName) {
 
-        return userService.searchByNickName(nickName);
+        return userService.searchByNickname(nickName);
     }
 }

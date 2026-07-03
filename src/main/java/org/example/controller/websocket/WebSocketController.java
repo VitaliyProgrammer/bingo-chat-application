@@ -1,5 +1,6 @@
 package org.example.controller.websocket;
 
+import java.security.Principal;
 import lombok.RequiredArgsConstructor;
 import org.example.dto.request.ChatAsReadRequestDto;
 import org.example.dto.request.MessageAckRequestDto;
@@ -19,9 +20,9 @@ public class WebSocketController {
     private final SimpMessagingTemplate messagingTemplate;
 
     @MessageMapping("/chat.send")
-    public void sendMessage(MessageRequestDto request) {
+    public void sendMessage(MessageRequestDto request, Principal principal) {
 
-        messageService.sendMessage(request);
+        messageService.sendMessage(request, principal);
     }
 
     @MessageMapping("/chat.typing")

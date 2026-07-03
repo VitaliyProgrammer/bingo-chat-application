@@ -45,7 +45,8 @@ public class OutBoxEventProcessor {
 
     private final ApplicationMetricsService metricsService;
 
-    @Scheduled(fixedDelay = 1000)
+    @Scheduled(fixedDelay = 10000)
+    @Transactional
     public void process() {
 
         if (!schedulerLockManager.acquireLock(LOCK_KEY, Duration.ofSeconds(10))) {
@@ -78,7 +79,6 @@ public class OutBoxEventProcessor {
         }
     }
 
-    @Transactional
     public void processSingle(OutboxEvent event) {
         try {
             String key = "idempotent:" + event.getId();

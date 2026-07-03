@@ -1,5 +1,6 @@
 package org.example.service.impl;
 
+import java.security.Principal;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -86,53 +87,19 @@ public class MessageServiceImpl implements MessageService {
 
         User senderUser = currentUserProvider.getAuthenticatedUser();
 
-        Chat chat = chatRepository.findById(request.chatId())
-                .orElseThrow(() -> new ChatNotFoundException("Chat not found!"));
+        return sendMessageInternal(request, senderUser);
+    }
 
-        validateUserInChat(chat, senderUser);
+    @Override
+    @Transactional
+    public MessageResponseDto sendMessage(MessageRequestDto request, Principal principal) {
 
-        chatRepository.incrementSequence(chat.getId());
+        log.debug("SEND MESSAGE CALLED chatId={}, thread={}, principal={}",
+                request.chatId(), Thread.currentThread().getName(), principal.getName());
 
-        Long sequence = chatRepository.getCurrentSequence(chat.getId());
+        User senderUser = currentUserProvider.getAuthenticatedUser(principal);
 
-        Message message = new Message();
-        message.setChat(chat);
-        message.setSender(senderUser);
-        message.setContent(request.content());
-        message.setStatus(MessageStatus.SENT);
-
-        message.setSequence(sequence);
-
-        replyToMessage(request, message, chat);
-
-        Message savedMessage = messageRepository.save(message);
-
-        chat.setLastMessageText(savedMessage.getContent());
-        chat.setLastActivityTime(LocalDateTime.now());
-
-        metricsService.incrementMessageSent();
-        log.info("Message sent: messageId={}, chatId={}, senderId={}",
-                savedMessage.getId(), chat.getId(), senderUser.getId());
-
-        redisTemplate.opsForSet().add("pending:messages", savedMessage.getId().toString());
-
-        chat.getParticipants().forEach(user -> {
-            if (!user.getId().equals(senderUser.getId())) {
-                redisService.incrementUnreadMessages(user.getId(), chat.getId());
-            }
-        });
-
-        MessageResponseDto response = messageMapper.toDto(savedMessage);
-
-        final Map<Long, Boolean> participantsOnline = chat.getParticipants().stream()
-                .map(User::getId)
-                .collect(Collectors.toMap(userId -> userId, redisService::isUserOnline));
-
-        outBoxEventRepository.save(outBoxEventFactory.messageSent(
-                new MessageSentEvent(chat.getId(), response, participantsOnline)
-        ));
-
-        return response;
+        return sendMessageInternal(request, senderUser);
     }
 
     @Override
@@ -306,6 +273,65 @@ public class MessageServiceImpl implements MessageService {
         return messageMapper.toDto(message);
     }
 
+    private MessageResponseDto sendMessageInternal(MessageRequestDto request, User senderUser) {
+
+        // Step 1: Lock chat row FIRST (blocks other concurrent requests)
+        chatRepository.lockChatForUpdate(request.chatId());
+
+        Chat chat = chatRepository.findById(request.chatId())
+                .orElseThrow(() -> new ChatNotFoundException("Chat not found!"));
+
+        validateUserInChat(chat, senderUser);
+
+        // Step 2: Generate sequence atomically WITHIN locked transaction
+        Long sequence = chatRepository.getNextMessageSequence(chat.getId());
+        chat.setLastMessageSequence(sequence);
+
+        log.debug("Generated sequence for chatId={}: sequence={}", chat.getId(), sequence);
+
+        Message message = new Message();
+        message.setChat(chat);
+        message.setSender(senderUser);
+        message.setContent(request.content());
+        message.setStatus(MessageStatus.SENT);
+        message.setSequence(sequence);
+
+        replyToMessage(request, message, chat);
+
+        Message savedMessage = messageRepository.save(message);
+
+        chat.setLastMessageText(savedMessage.getContent());
+        chat.setLastActivityTime(LocalDateTime.now());
+        // lastMessageSequence is already set via chat.setLastMessageSequence(sequence) earlier
+
+        chatRepository.save(chat);
+
+        metricsService.incrementMessageSent();
+
+        log.info("Message sent: messageId={}, chatId={}, senderId={}, sequence={}",
+                savedMessage.getId(), chat.getId(), senderUser.getId(), sequence);
+
+        redisTemplate.opsForSet().add("pending:messages", savedMessage.getId().toString());
+
+        chat.getParticipants().forEach(user -> {
+            if (!user.getId().equals(senderUser.getId())) {
+                redisService.incrementUnreadMessages(user.getId(), chat.getId());
+            }
+        });
+
+        MessageResponseDto response = messageMapper.toDto(savedMessage);
+
+        final Map<Long, Boolean> participantsOnline = chat.getParticipants().stream()
+                .map(User::getId)
+                .collect(Collectors.toMap(userId -> userId, redisService::isUserOnline));
+
+        outBoxEventRepository.save(outBoxEventFactory.messageSent(
+                new MessageSentEvent(chat.getId(), response, participantsOnline)
+        ));
+
+        return response;
+    }
+
     private Message getMessageOrThrow(Long messageId) {
 
         return messageRepository.findById(messageId)
@@ -392,4 +418,5 @@ public class MessageServiceImpl implements MessageService {
                 )
         );
     }
+
 }

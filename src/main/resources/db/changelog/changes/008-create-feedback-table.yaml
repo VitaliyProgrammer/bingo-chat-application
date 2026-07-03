@@ -61,7 +61,7 @@ databaseChangeLog:
                   name: created_at
 
         - createIndex:
-            tableName: messages
+            tableName: feedback
             indexName: idx_feedback_type
             columns:
               - column:

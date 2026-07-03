@@ -60,12 +60,12 @@ databaseChangeLog:
                   type: DATETIME
 
               - column:
-                  name: last_online_at
+                  name: last_in_online
                   type: DATETIME
 
         - createIndex:
             tableName: users
-            indexName: idx_users_nickname
+            indexName: idx_users_email
             columns:
               - column:
                   name: email

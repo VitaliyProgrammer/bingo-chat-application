@@ -29,24 +29,27 @@ public interface ChatRepository extends JpaRepository<Chat, Long> {
             AND p1.id = :user1Id AND p2.id = :user2Id AND p1.id <> p2.id""")
     Optional<Chat> findPrivateChatBetweenUsers(Long user1Id, Long user2Id);
 
-    @Modifying
-    @Query("UPDATE Chat c SET c.lastMessageSequence = c.lastMessageSequence + 1 "
-            + "WHERE c.id = :chatId")
-    int incrementSequence(@Param("chatId") Long chatId);
+    /**
+     * Atomically generates next message sequence for chat using database function.
+     * This approach guarantees uniqueness even under high concurrent load.
+     * MUST be called within an active transaction.
+     *
+     * @param chatId the chat ID
+     * @return next sequence number
+     */
+    @Query(value = "SELECT get_next_message_sequence(:chatId)", nativeQuery = true)
+    Long getNextMessageSequence(@Param("chatId") Long chatId);
 
-    @Query("SELECT c.lastMessageSequence FROM Chat c WHERE c.id = :chatId")
-    Long getCurrentSequence(@Param("chatId") Long chatId);
+    /**
+     * Lock chat row for update to prevent concurrent sequence generation.
+     * Use this before calling getNextMessageSequence().
+     *
+     * @param chatId the chat ID
+     */
+    @Query(value = "SELECT id FROM chats WHERE id = :chatId FOR UPDATE", nativeQuery = true)
+    Long lockChatForUpdate(@Param("chatId") Long chatId);
 
     boolean existsByIdAndParticipants_Id(Long chatId, Long userId);
-
-    @Query("""
-            SELECT c FROM Chat c
-            JOIN c.participants p
-            WHERE p.id = :userId
-            GROUP BY c.id
-            HAVING COUNT(p) = 1
-            """)
-    Optional<Chat> findSelfChat(Long chatId);
 
     boolean existsByOwnerIdAndChatType(Long ownerId, ChatType chatType);
 

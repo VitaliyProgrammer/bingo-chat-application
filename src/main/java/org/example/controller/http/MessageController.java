@@ -2,9 +2,8 @@ package org.example.controller.http;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.example.dto.request.MessageRequestDto;
+import lombok.extern.slf4j.Slf4j;
 import org.example.dto.response.MessagePageResponseDto;
 import org.example.dto.response.MessageResponseDto;
 import org.example.service.MessageService;
@@ -14,12 +13,12 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+@Slf4j
 @RestController
 @RequestMapping("/messages")
 @RequiredArgsConstructor
@@ -28,14 +27,16 @@ public class MessageController {
 
     private final MessageService messageService;
 
-    @PostMapping("/send")
+    /*@PostMapping("/send")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Send message",
             description = "Send message to a chat")
     public MessageResponseDto sendMessage(@Valid @RequestBody MessageRequestDto request) {
 
+        log.error("REST SEND HIT chatId={}", request.chatId());
+
         return messageService.sendMessage(request);
-    }
+    }*/
 
     @PutMapping("/{id}")
     @ResponseStatus(HttpStatus.CREATED)

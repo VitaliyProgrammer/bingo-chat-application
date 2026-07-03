@@ -54,7 +54,6 @@ public class User {
     @Column(name = "last_name")
     private String lastName;
 
-    @NotBlank
     @Column(name = "avatar_url")
     private String avatarUrl;
 

@@ -63,7 +63,7 @@ public class ChatServiceImpl implements ChatService {
         }
 
         Optional<Chat> existingChat = chatRepository
-                .findPrivateChatBetweenUsers(senderUser.getId(), receiverId);
+                .findPrivateChatBetweenUsers(senderId, receiverId);
 
         Locale locale = currentLocale();
 
@@ -183,14 +183,16 @@ public class ChatServiceImpl implements ChatService {
 
         User currentUser = currentUserProvider.getAuthenticatedUser();
 
-        Optional<Chat> existingChat = chatRepository.findSelfChat(currentUser.getId());
+        Optional<Chat> existingChat =
+                chatRepository.findByOwnerIdAndChatType(currentUser.getId(), ChatType.SELF);
 
         if (existingChat.isPresent()) {
             return chatMapper.toDto(existingChat.get(), timeFormatter, currentLocale());
         }
 
         Chat chat = new Chat();
-        chat.setChatType(ChatType.PRIVATE);
+        chat.setChatType(ChatType.SELF);
+        chat.setOwnerId(currentUser.getId());
 
         chat.getParticipants().add(currentUser);
 

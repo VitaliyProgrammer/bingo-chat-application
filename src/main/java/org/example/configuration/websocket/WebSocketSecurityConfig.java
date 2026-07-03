@@ -7,7 +7,7 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 
 @Configuration
 @RequiredArgsConstructor
-public class WebSocketSecurityConfiguration implements WebSocketMessageBrokerConfigurer {
+public class WebSocketSecurityConfig implements WebSocketMessageBrokerConfigurer {
 
     private final WebSocketAuthInterceptor interceptor;
 

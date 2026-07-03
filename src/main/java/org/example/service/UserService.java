@@ -6,7 +6,7 @@ import org.example.dto.response.UserSearchResponseDto;
 
 public interface UserService {
 
-    List<UserSearchResponseDto> searchByNickName(String nickname);
+    List<UserSearchResponseDto> searchByNickname(String nickname);
 
     UserProfileResponseDto getCurrentUserProfile();
 }

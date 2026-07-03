@@ -1,6 +1,7 @@
 package org.example.configuration.websocket.handler;
 
 import lombok.RequiredArgsConstructor;
+import org.example.configuration.websocket.WebSocketPrincipal;
 import org.example.service.RedisService;
 import org.springframework.context.ApplicationListener;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
@@ -18,11 +19,11 @@ public class WebSocketDisconnectHandler implements ApplicationListener<SessionDi
 
         StompHeaderAccessor accessor = StompHeaderAccessor.wrap(event.getMessage());
 
-        if (accessor.getUser() != null) {
+        if (accessor.getUser() instanceof WebSocketPrincipal principal) {
 
-            String userId = accessor.getUser().getName();
+            Long userId = principal.userId();
 
-            redisService.setUserOffline(Long.valueOf(userId));
+            redisService.setUserOffline(userId);
         }
     }
 }
