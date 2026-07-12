@@ -2,7 +2,7 @@ package org.example.event;
 
 import java.time.LocalDateTime;
 
-public record MessageReminderEvent(
+public record MessageRemindedEvent(
         Long messageId,
         Long userId,
         Long chatId,

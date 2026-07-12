@@ -10,7 +10,7 @@ import org.example.configuration.outbox.entity.OutboxEvent;
 import org.example.configuration.outbox.repository.OutBoxEventRepository;
 import org.example.configuration.outbox.status.OutboxEventStatus;
 import org.example.dto.response.MessageReminderResponseDto;
-import org.example.event.MessageReminderEvent;
+import org.example.event.MessageRemindedEvent;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -66,9 +66,9 @@ public class ReminderScheduler {
     public void processReminderEvent(OutboxEvent event) {
 
         try {
-            MessageReminderEvent reminderEvent = objectMapper.readValue(
+            MessageRemindedEvent reminderEvent = objectMapper.readValue(
                     event.getPayload(),
-                    MessageReminderEvent.class
+                    MessageRemindedEvent.class
             );
 
             if (reminderEvent.reminderAt().isAfter(LocalDateTime.now())) {

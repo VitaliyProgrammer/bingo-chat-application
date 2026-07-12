@@ -7,13 +7,9 @@ import lombok.RequiredArgsConstructor;
 import org.example.dto.response.ChatListItemResponseDto;
 import org.example.dto.response.ChatResponseDto;
 import org.example.service.ChatService;
+import org.example.service.MessageService;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/chats")
@@ -23,6 +19,8 @@ public class ChatController {
 
     private final ChatService chatService;
 
+    private final MessageService messageService;
+
     @PostMapping("/private")
     @ResponseStatus(HttpStatus.OK)
     @Operation(summary = "Create private chat", description = "Create of get existing private chat")
@@ -31,7 +29,15 @@ public class ChatController {
         return chatService.createPrivateChat(userId);
     }
 
-    @GetMapping("/{id}")
+    @PostMapping("/{chatId}/open")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Get my chatList", description = "Get all ")
+    public void openChat(@PathVariable Long chatId) {
+
+        messageService.openChat(chatId);
+    }
+
+    @GetMapping
     @ResponseStatus(HttpStatus.OK)
     @Operation(summary = "Get my chats", description = "Get all chats for the current user")
     public List<ChatResponseDto> getMyChat() {
@@ -39,7 +45,7 @@ public class ChatController {
         return chatService.getMyChats();
     }
 
-    @GetMapping("list")
+    @GetMapping("/sidebar")
     @ResponseStatus(HttpStatus.OK)
     @Operation(summary = "Get my chatList", description = "Get all ")
     public List<ChatListItemResponseDto> getChatList() {

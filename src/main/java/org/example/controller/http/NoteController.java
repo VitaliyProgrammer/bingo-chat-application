@@ -10,17 +10,12 @@ import org.example.dto.response.MessageResponseDto;
 import org.example.service.ChatService;
 import org.example.service.MessageService;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/notes")
 @RequiredArgsConstructor
-@Tag(name = "Personal Node API", description = "API for SELF chat functionality")
+@Tag(name = "Saved Messages API", description = "API for personal self-chat functionality")
 public class NoteController {
 
     private final ChatService chatService;
@@ -39,18 +34,19 @@ public class NoteController {
     @ResponseStatus(HttpStatus.OK)
     @Operation(summary = "Pin message in the SELF chat",
             description = "Pins message inside personal chat")
-    public MessageResponseDto pinMessage(@PathVariable Long messageId) {
+    public MessageResponseDto pinMessage(@PathVariable Long id) {
 
-        return messageService.pinMessage(messageId);
+        return messageService.pinMessage(id);
     }
 
-    @PostMapping("/messages/reminder")
+    @PostMapping("/{id}/reminder")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Create reminder for the message",
             description = "Create reminder for selected message")
     public MessageResponseDto reminderMessage(
+            @PathVariable Long id,
             @Valid @RequestBody MessageReminderRequestDto request) {
 
-        return messageService.setReminder(request);
+        return messageService.setReminder(id, request);
     }
 }

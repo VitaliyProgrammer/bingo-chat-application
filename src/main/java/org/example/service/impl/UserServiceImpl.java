@@ -8,8 +8,11 @@ import org.example.entity.User;
 import org.example.mapper.UserMapper;
 import org.example.repository.UserRepository;
 import org.example.security.CurrentUserProvider;
+import org.example.service.FileService;
 import org.example.service.UserService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +23,10 @@ public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
 
     private final CurrentUserProvider currentUserProvider;
+
+    private final FileService fileService;
+
+    private static final String AVATARS_DIR = "avatars";
 
     @Override
     public List<UserSearchResponseDto> searchByNickname(String nickname) {
@@ -35,5 +42,33 @@ public class UserServiceImpl implements UserService {
         User user = currentUserProvider.getAuthenticatedUser();
 
         return userMapper.toProfileDto(user);
+    }
+
+    @Override
+    @Transactional
+    public String updateAvatar(MultipartFile file) {
+        User user = currentUserProvider.getAuthenticatedUser();
+
+        if (user.getAvatarUrl() != null) {
+            fileService.deleteFile(user.getAvatarUrl());
+        }
+
+        String filePath = fileService.saveFile(AVATARS_DIR, file);
+        user.setAvatarUrl(filePath);
+        userRepository.save(user);
+
+        return filePath;
+    }
+
+    @Override
+    @Transactional
+    public void deleteAvatar() {
+        User user = currentUserProvider.getAuthenticatedUser();
+
+        if (user.getAvatarUrl() != null) {
+            fileService.deleteFile(user.getAvatarUrl());
+            user.setAvatarUrl(null);
+            userRepository.save(user);
+        }
     }
 }

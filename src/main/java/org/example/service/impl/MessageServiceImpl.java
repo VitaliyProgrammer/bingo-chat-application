@@ -20,8 +20,10 @@ import org.example.entity.Message;
 import org.example.entity.User;
 import org.example.entity.status.MessageStatus;
 import org.example.event.MessageDeliveredEvent;
+import org.example.event.MessageEditedEvent;
+import org.example.event.MessagePinnedEvent;
 import org.example.event.MessageReadEvent;
-import org.example.event.MessageReminderEvent;
+import org.example.event.MessageRemindedEvent;
 import org.example.event.MessageSentEvent;
 import org.example.exception.ChatNotFoundException;
 import org.example.exception.ForbiddenActionException;
@@ -116,7 +118,13 @@ public class MessageServiceImpl implements MessageService {
 
         message.setEditedAt(LocalDateTime.now());
 
-        return messageMapper.toDto(message);
+        MessageResponseDto response = messageMapper.toDto(message);
+
+        outBoxEventRepository.save(outBoxEventFactory.messageEdited(
+                new MessageEditedEvent(message.getChat().getId(), response)
+        ));
+
+        return response;
     }
 
     @Override
@@ -249,24 +257,32 @@ public class MessageServiceImpl implements MessageService {
 
         Message message = getMessageOrThrow(messageId);
 
-        validateMessageOwner(message, currentUserProvider.getAuthenticatedUser());
+        // Everyone in chat should be able to pin? Or only sender?
+        // Usually, in group chats any participant can pin, but here we have private chats.
+        validateUserInChat(message.getChat(), currentUserProvider.getAuthenticatedUser());
 
         message.setIsPinned(true);
 
-        return messageMapper.toDto(message);
+        MessageResponseDto response = messageMapper.toDto(message);
+
+        outBoxEventRepository.save(outBoxEventFactory.messagePinned(
+                new MessagePinnedEvent(message.getChat().getId(), response)
+        ));
+
+        return response;
     }
 
     @Override
     @Transactional
-    public MessageResponseDto setReminder(MessageReminderRequestDto request) {
+    public MessageResponseDto setReminder(Long messageId, MessageReminderRequestDto request) {
 
-        Message message = getMessageOrThrow(request.messageId());
+        Message message = getMessageOrThrow(messageId);
 
         validateMessageOwner(message, currentUserProvider.getAuthenticatedUser());
 
         message.setReminderAt(request.reminderAt());
 
-        outBoxEventRepository.save(outBoxEventFactory.messageReminded(new MessageReminderEvent(
+        outBoxEventRepository.save(outBoxEventFactory.messageReminded(new MessageRemindedEvent(
                 message.getId(), currentUserProvider.getAuthenticatedUser().getId(),
                 message.getChat().getId(), message.getContent(), request.reminderAt())));
 

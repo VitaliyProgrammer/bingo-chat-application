@@ -6,8 +6,10 @@ import lombok.RequiredArgsConstructor;
 import org.example.configuration.outbox.entity.OutboxEvent;
 import org.example.configuration.outbox.status.OutboxEventStatus;
 import org.example.event.MessageDeliveredEvent;
+import org.example.event.MessageEditedEvent;
+import org.example.event.MessagePinnedEvent;
 import org.example.event.MessageReadEvent;
-import org.example.event.MessageReminderEvent;
+import org.example.event.MessageRemindedEvent;
 import org.example.event.MessageSentEvent;
 import org.springframework.stereotype.Component;
 
@@ -46,11 +48,29 @@ public class OutBoxEventFactory {
         );
     }
 
-    public OutboxEvent messageReminded(MessageReminderEvent event) {
+    public OutboxEvent messageReminded(MessageRemindedEvent event) {
 
         return build(
                 event.chatId(),
                 OutboxEventStatus.MESSAGE_REMINDED,
+                event
+        );
+    }
+
+    public OutboxEvent messageEdited(MessageEditedEvent event) {
+
+        return build(
+                event.message().id(),
+                OutboxEventStatus.MESSAGE_EDITED,
+                event
+        );
+    }
+
+    public OutboxEvent messagePinned(MessagePinnedEvent event) {
+
+        return build(
+                event.message().id(),
+                OutboxEventStatus.MESSAGE_PINNED,
                 event
         );
     }

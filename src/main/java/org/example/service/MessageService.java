@@ -30,5 +30,5 @@ public interface MessageService {
 
     MessageResponseDto pinMessage(Long messageId);
 
-    MessageResponseDto setReminder(MessageReminderRequestDto request);
+    MessageResponseDto setReminder(Long messageId, MessageReminderRequestDto request);
 }
