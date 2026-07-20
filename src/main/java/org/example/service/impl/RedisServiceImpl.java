@@ -110,6 +110,17 @@ public class RedisServiceImpl implements RedisService {
     }
 
     @Override
+    public long increment(String key) {
+        Long value = redisTemplate.opsForValue().increment(key);
+        return value == null ? 0L : value;
+    }
+
+    @Override
+    public void expire(String key, Duration ttl) {
+        redisTemplate.expire(key, ttl);
+    }
+
+    @Override
     public void incrementSessions(Long userId) {
 
         redisTemplate.opsForValue().increment(RedisKeys.userSessions(userId));

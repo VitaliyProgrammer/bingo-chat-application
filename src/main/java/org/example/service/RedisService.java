@@ -32,6 +32,10 @@ public interface RedisService {
 
     boolean setIfAbsent(String key, String value, Duration ttl);
 
+    long increment(String key);
+
+    void expire(String key, Duration ttl);
+
     void incrementSessions(Long userId);
 
     void decrementSessions(Long userId);
