@@ -30,6 +30,7 @@
         /* Sidebar layout */
         .sidebar {
             width: 350px;
+            min-width: 350px;
             background: var(--panel-bg);
             border-right: 1px solid var(--border-color);
             display: flex;
@@ -46,6 +47,7 @@
             flex-direction: column;
             padding: 15px;
             gap: 15px;
+            min-width: 0;
         }
 
         h2, h3 { margin-top: 0; margin-bottom: 10px; border-bottom: 2px solid var(--primary-color); padding-bottom: 5px; }
@@ -111,6 +113,7 @@
             font-size: 14px;
             line-height: 1.5;
             white-space: pre-wrap;
+            word-break: break-all;
             border: 1px solid #333;
         }
 
@@ -180,16 +183,20 @@
 
     <!-- AUTH -->
     <div class="section">
-        <h3>AUTH</h3>
+        <h3>REGISTRATION</h3>
         <input id="regEmail" placeholder="Email" value="user1@example.com">
         <input id="regPass" placeholder="Password" type="password" value="password123">
         <input id="regFirstName" placeholder="First Name" value="John">
         <input id="regLastName" placeholder="Last Name" value="Doe">
         <input id="regNickName" placeholder="Nickname" value="johndoe">
-        <div class="grid-buttons">
-            <button onclick="register()">Register</button>
-            <button onclick="login()">Login</button>
-        </div>
+        <button class="success" style="width: 100%" type="button" onclick="register()">Register</button>
+    </div>
+
+    <div class="section">
+        <h3>LOGIN</h3>
+        <input id="loginEmail" placeholder="Email" value="user1@example.com">
+        <input id="loginPass" placeholder="Password" type="password" value="password123">
+        <button style="width: 100%" type="button" onclick="login()">Login</button>
         <div id="tokenDisplay" class="token-info">No token</div>
     </div>
 
@@ -198,12 +205,17 @@
         <h3>USERS & AVATAR</h3>
         <div id="avatarContainer" style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
             <img id="profileAvatar" class="avatar-preview" src="https://via.placeholder.com/50" alt="Avatar">
-            <div>
-                <button class="secondary" style="padding: 4px 8px; font-size: 11px;" onclick="getProfile()">Refresh Profile</button>
+            <div style="flex: 1;">
+                <button class="success" style="width: 100%; margin-bottom: 5px;" onclick="getProfile()">Get Profile</button>
+                <button class="secondary" style="width: 100%; font-size: 11px;" onclick="searchUser()">Search User</button>
             </div>
         </div>
+        <div id="profileInfo" style="font-size: 12px; margin-bottom: 10px; padding: 10px; background: #e9ecef; border: 1px solid var(--border-color); border-radius: 4px; display: none;">
+            <div><strong>Name:</strong> <span id="profName">-</span></div>
+            <div><strong>Login:</strong> <span id="profLogin">-</span></div>
+            <div><strong>Status:</strong> <span id="profStatus">-</span></div>
+        </div>
         <div class="grid-buttons">
-            <button class="secondary" onclick="searchUser()">Search User</button>
             <button class="danger" onclick="deleteAvatar()">Delete Avatar</button>
         </div>
         <input id="searchNick" placeholder="Nickname to search...">
@@ -219,12 +231,10 @@
         <input id="targetUserId" placeholder="User ID">
         <input id="targetChatId" placeholder="Chat ID">
         <div class="grid-buttons">
-            <button class="secondary" onclick="createPrivateChat()">Create Private</button>
+            <button class="secondary" onclick="createPrivateChat()">Create Private Chat</button>
             <button class="secondary" onclick="openChat()">Open Chat</button>
-            <button class="secondary" onclick="getMyChats()">Get My Chats</button>
             <button class="secondary" onclick="getSidebar()">Get Sidebar</button>
             <button class="secondary" onclick="getSelfChat()">Get Self Chat</button>
-            <button class="secondary" onclick="createSelfChat()">Create Self</button>
         </div>
     </div>
 
@@ -245,7 +255,7 @@
 
     <!-- PRESENCE -->
     <div class="section">
-        <h3>PRESENCE</h3>
+        <h3>PRESENCE (Testing)</h3>
         <div class="grid-buttons">
             <button class="secondary" onclick="presencePing()">Presence Ping</button>
             <button class="secondary" onclick="updateLastSeen()">Update Last Seen</button>
@@ -322,7 +332,10 @@
 
     // Initialize UI
     if (jwtToken) {
-        document.getElementById('tokenDisplay').innerText = "Token: " + jwtToken.substring(0, 20) + "...";
+        const tokenDisplay = document.getElementById('tokenDisplay');
+        if (tokenDisplay) {
+            tokenDisplay.innerText = "Token: " + jwtToken.substring(0, 20) + "...";
+        }
     }
 
     // --- UTILS ---
@@ -397,7 +410,10 @@
         const url = API_BASE + path;
         const method = options.method || 'GET';
         const defaultHeaders = { 'Content-Type': 'application/json' };
-        if (jwtToken) {
+        
+        // Don't send token for registration or login
+        const isAuthPath = path.startsWith('/auth/');
+        if (jwtToken && !isAuthPath) {
             defaultHeaders['Authorization'] = 'Bearer ' + jwtToken;
         }
 
@@ -423,6 +439,38 @@
     }
 
     // --- AUTH ---
+    async function login() {
+        console.log("Login button clicked");
+        const loginEmail = document.getElementById('loginEmail');
+        const loginPass = document.getElementById('loginPass');
+        
+        if (!loginEmail || !loginPass) {
+            console.error("Login fields not found!");
+            return;
+        }
+
+        const body = {
+            email: loginEmail.value,
+            password: loginPass.value
+        };
+        
+        console.log("Fetching authentication...");
+        const data = await apiFetch('/auth/authentication', { method: 'POST', body: JSON.stringify(body) });
+        
+        if (data && data.token) {
+            jwtToken = data.token;
+            localStorage.setItem('jwt_token', jwtToken);
+            const tokenDisplay = document.getElementById('tokenDisplay');
+            if (tokenDisplay) {
+                tokenDisplay.innerText = "Token: " + jwtToken.substring(0, 20) + "...";
+            }
+            // Trigger profile update and connect automatically if needed
+            await getProfile();
+        } else {
+            console.warn("Login failed or no token received", data);
+        }
+    }
+
     async function register() {
         const body = {
             email: document.getElementById('regEmail').value,
@@ -432,29 +480,44 @@
             lastName: document.getElementById('regLastName').value,
             nickName: document.getElementById('regNickName').value
         };
-        await apiFetch('/auth/registration', { method: 'POST', body: JSON.stringify(body) });
-    }
-
-    async function login() {
-        const body = {
-            email: document.getElementById('regEmail').value,
-            password: document.getElementById('regPass').value
-        };
-        const data = await apiFetch('/auth/authentication', { method: 'POST', body: JSON.stringify(body) });
-        if (data && data.token) {
-            jwtToken = data.token;
-            localStorage.setItem('jwt_token', jwtToken);
-            document.getElementById('tokenDisplay').innerText = "Token: " + jwtToken.substring(0, 20) + "...";
+        const data = await apiFetch('/auth/registration', { method: 'POST', body: JSON.stringify(body) });
+        if (data && !data.error) {
+            alert("Registration successful! Please login.");
         }
     }
+
 
     // --- USERS ---
     async function getProfile() {
         const profile = await apiFetch('/users/me');
-        if (profile && profile.avatarUrl) {
-            document.getElementById('profileAvatar').src = API_BASE + '/uploads/' + profile.avatarUrl;
-        } else {
-            document.getElementById('profileAvatar').src = 'https://via.placeholder.com/50';
+        if (profile) {
+            // Update Avatar
+            const avatarImg = document.getElementById('profileAvatar');
+            if (profile.avatarUrl) {
+                avatarImg.src = API_BASE + '/uploads/' + profile.avatarUrl;
+                avatarImg.title = profile.avatarUrl;
+            } else {
+                avatarImg.src = 'https://via.placeholder.com/50';
+                avatarImg.title = 'No avatar';
+            }
+
+            // Update Profile Info
+            const infoBox = document.getElementById('profileInfo');
+            infoBox.style.display = 'block';
+            
+            const fullName = [profile.firstName, profile.lastName].filter(Boolean).join(' ') || profile.nickName;
+            document.getElementById('profName').innerText = fullName;
+            document.getElementById('profLogin').innerText = profile.email || profile.nickName;
+            
+            const statusEl = document.getElementById('profStatus');
+            statusEl.innerText = profile.isOnline ? 'Online' : 'Offline';
+            statusEl.className = profile.isOnline ? 'status-online' : 'status-offline';
+            statusEl.style.padding = '2px 6px';
+            statusEl.style.borderRadius = '4px';
+            statusEl.style.color = 'white';
+            statusEl.style.fontSize = '10px';
+            statusEl.style.fontWeight = 'bold';
+            statusEl.style.display = 'inline-block';
         }
     }
 
@@ -479,7 +542,8 @@
         // We can't use apiFetch directly because it forces application/json
         const url = API_BASE + '/users/me/avatar';
         const headers = {};
-        if (jwtToken) headers['Authorization'] = 'Bearer ' + jwtToken;
+        const isAuthPath = url.includes('/auth/');
+        if (jwtToken && !isAuthPath) headers['Authorization'] = 'Bearer ' + jwtToken;
 
         try {
             const response = await fetch(url, { method: 'POST', body: formData, headers: headers });

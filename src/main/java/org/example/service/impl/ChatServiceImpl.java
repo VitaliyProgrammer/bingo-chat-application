@@ -1,9 +1,5 @@
 package org.example.service.impl;
 
-import java.util.Comparator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.dto.response.ChatListItemResponseDto;
@@ -25,6 +21,11 @@ import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -91,25 +92,6 @@ public class ChatServiceImpl implements ChatService {
                 savedChat.getId(), senderId, receiverId);
 
         return chatMapper.toDto(savedChat, timeFormatter, locale);
-    }
-
-    @Override
-    public List<ChatResponseDto> getMyChats() {
-
-        User currentUser = currentUserProvider.getAuthenticatedUser();
-        Long userId = currentUser.getId();
-
-        log.debug("Fetching chats for chatId={}", userId);
-
-        Locale locale = currentLocale();
-
-        List<ChatResponseDto> result = chatRepository.findAllChatsByUserId(userId).stream()
-                .map(chat -> chatMapper.toDto(chat, timeFormatter, locale))
-                .toList();
-
-        log.debug("Fetched {} chats for chatId={}", result.size(), userId);
-
-        return result;
     }
 
     @Override

@@ -5,7 +5,9 @@ public record UserProfileResponseDto(
         String firstName,
         String lastName,
         String nickName,
-        String email
+        String email,
+        boolean isOnline,
+        String avatarUrl
 ) {
 }
 

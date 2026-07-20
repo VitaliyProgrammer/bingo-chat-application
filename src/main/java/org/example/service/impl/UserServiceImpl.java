@@ -25,6 +25,7 @@ public class UserServiceImpl implements UserService {
     private final CurrentUserProvider currentUserProvider;
 
     private final FileService fileService;
+    private final org.example.service.RedisService redisService;
 
     private static final String AVATARS_DIR = "avatars";
 
@@ -40,8 +41,9 @@ public class UserServiceImpl implements UserService {
     public UserProfileResponseDto getCurrentUserProfile() {
 
         User user = currentUserProvider.getAuthenticatedUser();
+        boolean isOnline = redisService.isUserOnline(user.getId());
 
-        return userMapper.toProfileDto(user);
+        return userMapper.toProfileDto(user, isOnline);
     }
 
     @Override

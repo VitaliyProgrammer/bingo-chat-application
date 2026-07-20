@@ -8,8 +8,6 @@ public interface ChatService {
 
     ChatResponseDto createPrivateChat(Long userId);
 
-    List<ChatResponseDto> getMyChats();
-
     List<ChatListItemResponseDto> getMyChatList();
 
     ChatResponseDto createSelfChat();

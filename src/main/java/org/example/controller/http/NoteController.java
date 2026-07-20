@@ -18,17 +18,7 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Saved Messages API", description = "API for personal self-chat functionality")
 public class NoteController {
 
-    private final ChatService chatService;
     private final MessageService messageService;
-
-    @PostMapping("/self")
-    @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Create SELF chat",
-            description = "Create personal chat for authenticated user")
-    public ChatResponseDto createSelfChat() {
-
-        return chatService.createSelfChat();
-    }
 
     @PostMapping("/messages/{id}/pin")
     @ResponseStatus(HttpStatus.OK)

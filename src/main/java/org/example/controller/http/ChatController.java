@@ -37,14 +37,6 @@ public class ChatController {
         messageService.openChat(chatId);
     }
 
-    @GetMapping
-    @ResponseStatus(HttpStatus.OK)
-    @Operation(summary = "Get my chats", description = "Get all chats for the current user")
-    public List<ChatResponseDto> getMyChat() {
-
-        return chatService.getMyChats();
-    }
-
     @GetMapping("/sidebar")
     @ResponseStatus(HttpStatus.OK)
     @Operation(summary = "Get my chatList", description = "Get all ")
