@@ -69,7 +69,7 @@ public class PresenceTimeFormatter {
         return DateTimeFormatter.ofPattern("HH:mm")
                 .format(Instant.ofEpochMilli(milliSeconds)
                         .atZone(ZoneId.systemDefault())
-                        .toLocalDate()
+                        .toLocalDateTime()
                 );
     }
 
@@ -77,7 +77,7 @@ public class PresenceTimeFormatter {
         return DateTimeFormatter.ofPattern("dd.MM.yyyy")
                 .format(Instant.ofEpochMilli(milliSeconds)
                         .atZone(ZoneId.systemDefault())
-                        .toLocalDate()
+                        .toLocalDateTime()
                 );
     }
 }

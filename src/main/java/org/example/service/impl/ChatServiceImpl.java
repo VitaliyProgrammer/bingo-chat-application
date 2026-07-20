@@ -83,6 +83,7 @@ public class ChatServiceImpl implements ChatService {
 
         Chat chat = new Chat();
         chat.setChatType(ChatType.PRIVATE);
+        chat.setOwnerId(senderId);
         chat.getParticipants().add(senderUser);
         chat.getParticipants().add(receiverUser);
 

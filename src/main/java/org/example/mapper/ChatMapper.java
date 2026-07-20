@@ -15,6 +15,7 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface ChatMapper {
 
+    @Mapping(target = "type", source = "chatType")
     @Mapping(target = "participantIds", expression = "java(participants(chat))")
     @Mapping(target = "lastSeen", expression = "java(formatLastSeen(chat, timeFormatter, locale))")
     ChatResponseDto toDto(Chat chat, @Context PresenceTimeFormatter timeFormatter,

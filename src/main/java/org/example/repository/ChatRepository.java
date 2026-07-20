@@ -14,6 +14,7 @@ public interface ChatRepository extends JpaRepository<Chat, Long> {
 
     @Query("""
             SELECT c FROM Chat c
+            JOIN FETCH c.participants
             JOIN c.participants p
             WHERE p.id = :userId
             ORDER BY c.lastActivityTime DESC

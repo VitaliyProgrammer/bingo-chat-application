@@ -568,6 +568,11 @@
     }
     function openChat() {
         const chatId = document.getElementById('targetChatId').value;
+        if (!chatId) {
+            alert("Будь ласка, введіть Chat ID!");
+            logRest('POST', '/chats/{chatId}/open', 'CLIENT_ERROR', 'Please enter Chat ID', true);
+            return;
+        }
         apiFetch(`/chats/${chatId}/open`, { method: 'POST' });
     }
     function getMyChats() { apiFetch('/chats'); }

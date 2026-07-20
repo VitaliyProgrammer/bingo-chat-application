@@ -1,10 +1,5 @@
 package org.example.service.impl;
 
-import java.security.Principal;
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.configuration.metrics.service.ApplicationMetricsService;
@@ -19,12 +14,7 @@ import org.example.entity.Chat;
 import org.example.entity.Message;
 import org.example.entity.User;
 import org.example.entity.status.MessageStatus;
-import org.example.event.MessageDeliveredEvent;
-import org.example.event.MessageEditedEvent;
-import org.example.event.MessagePinnedEvent;
-import org.example.event.MessageReadEvent;
-import org.example.event.MessageRemindedEvent;
-import org.example.event.MessageSentEvent;
+import org.example.event.*;
 import org.example.exception.ChatNotFoundException;
 import org.example.exception.ForbiddenActionException;
 import org.example.exception.MessageNotFoundException;
@@ -41,6 +31,12 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.security.Principal;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -71,12 +67,9 @@ public class MessageServiceImpl implements MessageService {
 
         User senderUser = currentUserProvider.getAuthenticatedUser();
 
-        Chat chat = chatRepository.findById(chatId)
-                .orElseThrow(() -> new ChatNotFoundException("Chat not found!"));
+        validateUserInChat(chatId, senderUser.getId());
 
-        validateUserInChat(chat, senderUser);
-
-        log.info("Opening chat: chatId={}, chatId={}", chatId, senderUser.getId());
+        log.info("Opening chat: chatId={}, userId={}", chatId, senderUser.getId());
 
         redisService.resetUnReadMessages(senderUser.getId(), chatId);
 
@@ -135,7 +128,7 @@ public class MessageServiceImpl implements MessageService {
 
         Message message = getMessageOrThrow(messageId);
 
-        validateUserInChat(message.getChat(), currentUser);
+        validateUserInChat(message.getChat().getId(), currentUser.getId());
         validateNotSender(message, currentUser);
 
         if (message.getStatus() == MessageStatus.DELIVERED
@@ -166,7 +159,7 @@ public class MessageServiceImpl implements MessageService {
 
         Message message = getMessageOrThrow(messageId);
 
-        validateUserInChat(message.getChat(), currentUser);
+        validateUserInChat(message.getChat().getId(), currentUser.getId());
         validateNotSender(message, currentUser);
 
         if (message.getStatus() == MessageStatus.READ) {
@@ -224,10 +217,7 @@ public class MessageServiceImpl implements MessageService {
 
         User currentUser = currentUserProvider.getAuthenticatedUser();
 
-        Chat chat = chatRepository.findById(chatId)
-                .orElseThrow(() -> new ChatNotFoundException("Chat not found!"));
-
-        validateUserInChat(chat, currentUser);
+        validateUserInChat(chatId, currentUser.getId());
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
 
@@ -259,7 +249,7 @@ public class MessageServiceImpl implements MessageService {
 
         // Everyone in chat should be able to pin? Or only sender?
         // Usually, in group chats any participant can pin, but here we have private chats.
-        validateUserInChat(message.getChat(), currentUserProvider.getAuthenticatedUser());
+        validateUserInChat(message.getChat().getId(), currentUserProvider.getAuthenticatedUser().getId());
 
         message.setIsPinned(true);
 
@@ -291,13 +281,13 @@ public class MessageServiceImpl implements MessageService {
 
     private MessageResponseDto sendMessageInternal(MessageRequestDto request, User senderUser) {
 
+        validateUserInChat(request.chatId(), senderUser.getId());
+
         // Step 1: Lock chat row FIRST (blocks other concurrent requests)
         chatRepository.lockChatForUpdate(request.chatId());
 
         Chat chat = chatRepository.findById(request.chatId())
                 .orElseThrow(() -> new ChatNotFoundException("Chat not found!"));
-
-        validateUserInChat(chat, senderUser);
 
         // Step 2: Generate sequence atomically WITHIN locked transaction
         Long sequence = chatRepository.getNextMessageSequence(chat.getId());
@@ -354,9 +344,9 @@ public class MessageServiceImpl implements MessageService {
                 .orElseThrow(() -> new MessageNotFoundException("Message not found!"));
     }
 
-    private void validateUserInChat(Chat chat, User user) {
+    private void validateUserInChat(Long chatId, Long userId) {
 
-        if (!chat.getParticipants().contains(user)) {
+        if (!chatRepository.existsByIdAndParticipants_Id(chatId, userId)) {
             throw new ForbiddenActionException("You are not a participant of this chat!");
         }
     }
