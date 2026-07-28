@@ -19,3 +19,7 @@ databaseChangeLog:
       file: db/changelog/changes/009-create-seed-roles.yaml
   - include:
       file: db/changelog/changes/010-add-sequence-generator-function.yaml
+  - include:
+      file: db/changelog/changes/011-add-feedback-admin-reply.yaml
+  - include:
+      file: db/changelog/changes/012-add-feedback-reply-seen.yaml

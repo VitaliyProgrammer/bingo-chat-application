@@ -54,6 +54,14 @@ public class Feedback {
     @Column(length = 5000, nullable = false)
     private String message;
 
+    @Column(length = 5000)
+    private String adminReply;
+
+    private LocalDateTime respondedAt;
+
+    @Column(nullable = false)
+    private boolean replySeen;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

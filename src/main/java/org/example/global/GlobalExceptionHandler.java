@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.exception.AuthenticationException;
 import org.example.exception.BadRequestException;
 import org.example.exception.ChatNotFoundException;
+import org.example.exception.FeedbackNotFoundException;
 import org.example.exception.ForbiddenActionException;
 import org.example.exception.InvalidJwtTokenException;
 import org.example.exception.JwtTokenExpiredException;
@@ -20,6 +21,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -96,6 +98,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return buildResponse(exception.getMessage(), "FORBIDDEN", HttpStatus.FORBIDDEN);
     }
 
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponseBody> handleAccessDeniedException(
+            AccessDeniedException exception) {
+
+        return buildResponse("You don't have permission to perform this action!",
+                "FORBIDDEN", HttpStatus.FORBIDDEN);
+    }
+
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<ErrorResponseBody> handleBadRequestException(
             BadRequestException exception) {
@@ -108,7 +118,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             UserNotFoundException.class,
             UserRoleNotFoundException.class,
             ChatNotFoundException.class,
-            MessageNotFoundException.class
+            MessageNotFoundException.class,
+            FeedbackNotFoundException.class
     })
     public ResponseEntity<ErrorResponseBody> handleNotFoundException(
             RuntimeException exception) {

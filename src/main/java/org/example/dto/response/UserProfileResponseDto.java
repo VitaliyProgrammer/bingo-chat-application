@@ -7,7 +7,7 @@ public record UserProfileResponseDto(
         String nickName,
         String email,
         boolean isOnline,
-        String avatarUrl
+        String avatarUrl,
+        int unreadFeedbackReplies
 ) {
 }
-

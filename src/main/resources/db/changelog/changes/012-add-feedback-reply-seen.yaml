@@ -1,0 +1,16 @@
+databaseChangeLog:
+  - changeSet:
+      id: add-feedback-reply-seen
+      author: vitaliy
+      changes:
+
+        - addColumn:
+            tableName: feedback
+            columns:
+
+              - column:
+                  name: reply_seen
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false

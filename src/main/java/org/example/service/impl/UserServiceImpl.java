@@ -6,6 +6,7 @@ import org.example.dto.response.UserProfileResponseDto;
 import org.example.dto.response.UserSearchResponseDto;
 import org.example.entity.User;
 import org.example.mapper.UserMapper;
+import org.example.repository.FeedbackRepository;
 import org.example.repository.UserRepository;
 import org.example.security.CurrentUserProvider;
 import org.example.service.FileService;
@@ -26,6 +27,7 @@ public class UserServiceImpl implements UserService {
 
     private final FileService fileService;
     private final org.example.service.RedisService redisService;
+    private final FeedbackRepository feedbackRepository;
 
     private static final String AVATARS_DIR = "avatars";
 
@@ -43,7 +45,10 @@ public class UserServiceImpl implements UserService {
         User user = currentUserProvider.getAuthenticatedUser();
         boolean isOnline = redisService.isUserOnline(user.getId());
 
-        return userMapper.toProfileDto(user, isOnline);
+        int unreadFeedbackReplies = (int) feedbackRepository
+                .countByUserIdAndAdminReplyIsNotNullAndReplySeenFalse(user.getId());
+
+        return userMapper.toProfileDto(user, isOnline, unreadFeedbackReplies);
     }
 
     @Override

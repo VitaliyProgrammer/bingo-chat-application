@@ -1,4 +1,5 @@
 package org.example.mapper;
+
 import org.example.dto.request.UserRegistrationRequestDto;
 import org.example.dto.response.UserProfileResponseDto;
 import org.example.dto.response.UserRegistrationResponseDto;
@@ -19,7 +20,8 @@ public interface UserMapper {
     @Mapping(target = "nickName", source = "user.nickname")
     @Mapping(target = "isOnline", source = "isOnline")
     @Mapping(target = "avatarUrl", source = "user.avatarUrl")
-    UserProfileResponseDto toProfileDto(User user, boolean isOnline);
+    @Mapping(target = "unreadFeedbackReplies", source = "unreadFeedbackReplies")
+    UserProfileResponseDto toProfileDto(User user, boolean isOnline, int unreadFeedbackReplies);
 
     @Mapping(target = "nickName", source = "nickname")
     UserSearchResponseDto toSearchDto(User user);
