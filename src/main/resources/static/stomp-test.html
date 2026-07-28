@@ -77,6 +77,11 @@
             font-size: 13px;
         }
 
+        textarea {
+            resize: vertical;
+            max-width: 100%;
+        }
+
         button {
             padding: 8px 12px;
             cursor: pointer;
@@ -265,8 +270,39 @@
     <!-- FEEDBACK -->
     <div class="section">
         <h3>FEEDBACK</h3>
+        <input id="feedbackEmail" placeholder="Your email" value="user1@example.com">
+        <select id="feedbackType">
+            <option value="BUG">BUG</option>
+            <option value="SUGGESTION">SUGGESTION</option>
+            <option value="QUESTION">QUESTION</option>
+        </select>
         <textarea id="feedbackText" placeholder="Your feedback..."></textarea>
         <button style="width:100%" onclick="sendFeedback()">Send Feedback</button>
+        <button class="secondary" style="width:100%; margin-top:5px;" onclick="getMyFeedback()">My Feedback History</button>
+    </div>
+
+    <!-- ADMIN FEEDBACK -->
+    <div class="section">
+        <h3>ADMIN - FEEDBACK</h3>
+        <div class="grid-buttons">
+            <input id="feedbackAdminPage" placeholder="Page" value="0">
+            <input id="feedbackAdminSize" placeholder="Size" value="20">
+        </div>
+        <button class="secondary" style="width:100%" onclick="getAllFeedbackAdmin()">Get All (Admin)</button>
+        <button class="secondary" style="width:100%; margin-top:5px;" onclick="getFeedbackStatsAdmin()">Get Stats (Admin)</button>
+
+        <div style="margin-top:10px; border-top:1px solid #eee; padding-top:10px;">
+            <input id="feedbackAdminId" placeholder="Feedback ID">
+            <select id="feedbackAdminStatus">
+                <option value="">-- keep status --</option>
+                <option value="NEW">NEW</option>
+                <option value="IN_PROGRESS">IN_PROGRESS</option>
+                <option value="RESOLVED">RESOLVED</option>
+                <option value="REJECTED">REJECTED</option>
+            </select>
+            <textarea id="feedbackAdminReply" placeholder="Admin reply..."></textarea>
+            <button class="success" style="width:100%" onclick="respondFeedbackAdmin()">Respond (Admin)</button>
+        </div>
     </div>
 </div>
 
@@ -581,6 +617,8 @@
     function createSelfChat() { apiFetch('/notes/self', { method: 'POST' }); }
 
     // --- WEBSOCKET ---
+    let presenceHeartbeat = null;
+
     function connect() {
         if (!jwtToken) return alert("Login first!");
         const socket = new WebSocket('ws://localhost:8080/websocket');
@@ -592,11 +630,24 @@
                 document.getElementById('wsStatus').className = "status-indicator status-online";
                 document.getElementById('wsStatusText').innerText = "Connected";
                 logWs("STOMP Connected");
+
+                // Server marks us online on connect (40s TTL) - keep renewing it
+                // automatically while the connection is alive, like a real client would.
+                // Clear any leftover interval first - Connect can be clicked again
+                // without a Disconnect in between (e.g. after a dropped connection).
+                clearInterval(presenceHeartbeat);
+                presenceHeartbeat = setInterval(presencePing, 25000);
+
+                // Personal queue - server pushes reminders here once reminderAt is due.
+                stompClient.subscribe('/user/queue/reminders', (msg) => {
+                    logWs('REMINDER from /user/queue/reminders', JSON.parse(msg.body));
+                });
             },
             (err) => {
                 document.getElementById('wsStatus').className = "status-indicator status-offline";
                 document.getElementById('wsStatusText').innerText = "Disconnected";
                 logWs("STOMP Error", err);
+                clearInterval(presenceHeartbeat);
             }
         );
     }
@@ -607,6 +658,7 @@
                 document.getElementById('wsStatus').className = "status-indicator status-offline";
                 document.getElementById('wsStatusText').innerText = "Disconnected";
                 logWs("STOMP Disconnected");
+                clearInterval(presenceHeartbeat);
             });
         }
     }
@@ -692,10 +744,13 @@
     // --- NOTES ---
     function setReminder() {
         const id = document.getElementById('msgId').value;
-        const date = document.getElementById('reminderDate').value; // Need ISO format
+        // datetime-local already gives "YYYY-MM-DDTHH:mm" in local wall-clock time,
+        // exactly what the backend's zone-less LocalDateTime expects - do NOT run
+        // this through Date/toISOString(), that converts it to UTC and shifts it.
+        const date = document.getElementById('reminderDate').value;
         apiFetch(`/notes/${id}/reminder`, {
             method: 'POST',
-            body: JSON.stringify({ reminderAt: new Date(date).toISOString() })
+            body: JSON.stringify({ reminderAt: date })
         });
     }
 
@@ -707,20 +762,59 @@
     // --- PRESENCE ---
     function presencePing() {
         if (!stompClient) return alert("Connect first!");
-        stompClient.send("/app/presence.ping", {}, {});
+        stompClient.send("/app/presence.ping", {}, '');
         logWs("SENT /app/presence.ping");
     }
 
     function updateLastSeen() {
         if (!stompClient) return alert("Connect first!");
-        stompClient.send("/app/presence.lastSeen", {}, {});
+        stompClient.send("/app/presence.lastSeen", {}, '');
         logWs("SENT /app/presence.lastSeen");
     }
 
+    // Tab minimized/backgrounded while WS stays connected (not a real
+    // disconnect) - record last-seen automatically, like Telegram's "away".
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden && stompClient && stompClient.connected) {
+            stompClient.send("/app/presence.lastSeen", {}, '');
+            logWs("SENT /app/presence.lastSeen (tab hidden)");
+        }
+    });
+
     // --- FEEDBACK ---
     function sendFeedback() {
-        const content = document.getElementById('feedbackText').value;
-        apiFetch('/feedback/create', { method: 'POST', body: JSON.stringify({ content }) });
+        const email = document.getElementById('feedbackEmail').value;
+        const type = document.getElementById('feedbackType').value;
+        const message = document.getElementById('feedbackText').value;
+        apiFetch('/feedback', { method: 'POST', body: JSON.stringify({ email, type, message }) });
+    }
+
+    function getMyFeedback() {
+        apiFetch('/feedback/my');
+    }
+
+    // --- ADMIN FEEDBACK ---
+    function getAllFeedbackAdmin() {
+        const page = document.getElementById('feedbackAdminPage').value;
+        const size = document.getElementById('feedbackAdminSize').value;
+        apiFetch(`/admin/feedback?page=${page}&size=${size}`);
+    }
+
+    function getFeedbackStatsAdmin() {
+        apiFetch('/admin/feedback/stats');
+    }
+
+    function respondFeedbackAdmin() {
+        const id = document.getElementById('feedbackAdminId').value;
+        const status = document.getElementById('feedbackAdminStatus').value;
+        const adminReply = document.getElementById('feedbackAdminReply').value;
+
+        const body = {
+            status: status || null,
+            adminReply: adminReply || null
+        };
+
+        apiFetch(`/admin/feedback/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
     }
 
 </script>
