@@ -9,7 +9,7 @@ public record ChatResponseDto(
         Long id,
         ChatType type,
         Set<Long> participantIds,
-        @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm")
+        @JsonFormat(pattern = "yyyy-MM-dd' T 'HH:mm")
         LocalDateTime createdAt,
         String lastSeen
 ) {
