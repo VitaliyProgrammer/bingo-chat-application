@@ -7,6 +7,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.dto.response.MessageResponseDto;
 import org.example.dto.response.UnreadMessagesResponseDto;
 import org.example.event.MessageDeliveredEvent;
+import org.example.event.MessageEditedEvent;
+import org.example.event.MessagePinnedEvent;
 import org.example.event.MessageReadEvent;
 import org.example.event.MessageSentEvent;
 import org.example.service.RedisService;
@@ -110,5 +112,39 @@ public class MessageEventListener {
                         "userId", event.userId()
                 )
         );
+    }
+
+    @Async("eventExecutor")
+    @EventListener
+    public void handleMessageEdited(MessageEditedEvent event) {
+
+        String key = "event:edited:" + event.message().id() + ":" + event.message().editedAt();
+
+        if (!redisService.setIfAbsent(key, "1", IDEMPOTENCY_TTL)) {
+            log.debug("Duplicate EDITED event skipped: {}", key);
+            return;
+        }
+
+        log.debug("Event: message edited -> chatId={}, messageId={}",
+                event.chatId(), event.message().id());
+
+        messagingTemplate.convertAndSend("/topic/chat/" + event.chatId(), event.message());
+    }
+
+    @Async("eventExecutor")
+    @EventListener
+    public void handleMessagePinned(MessagePinnedEvent event) {
+
+        String key = "event:pinned:" + event.message().id();
+
+        if (!redisService.setIfAbsent(key, "1", IDEMPOTENCY_TTL)) {
+            log.debug("Duplicate PINNED event skipped: {}", key);
+            return;
+        }
+
+        log.debug("Event: message pinned -> chatId={}, messageId={}",
+                event.chatId(), event.message().id());
+
+        messagingTemplate.convertAndSend("/topic/chat/" + event.chatId(), event.message());
     }
 }

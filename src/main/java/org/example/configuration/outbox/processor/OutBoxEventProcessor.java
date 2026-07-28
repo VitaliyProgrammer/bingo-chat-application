@@ -13,6 +13,8 @@ import org.example.configuration.outbox.repository.OutBoxEventRepository;
 import org.example.configuration.outbox.status.OutboxEventStatus;
 import org.example.configuration.scheduler.SchedulerLockManager;
 import org.example.event.MessageDeliveredEvent;
+import org.example.event.MessageEditedEvent;
+import org.example.event.MessagePinnedEvent;
 import org.example.event.MessageReadEvent;
 import org.example.event.MessageSentEvent;
 import org.springframework.context.ApplicationEventPublisher;
@@ -58,7 +60,11 @@ public class OutBoxEventProcessor {
 
         try {
             List<OutboxEvent> events = outBoxEventRepository
-                    .findBatchForProcessing(PageRequest.of(0, BATCH_SIZE));
+                    .findBatchForProcessing(PageRequest.of(0, BATCH_SIZE))
+                    .stream()
+                    .filter(event -> !OutboxEventStatus.MESSAGE_REMINDED.name()
+                            .equals(event.getEventType()))
+                    .toList();
 
             log.info("Outbox poll started: fetched={} events", events.size());
 
@@ -144,6 +150,22 @@ public class OutBoxEventProcessor {
                 MessageReadEvent messageEvent = objectMapper.readValue(
                         event.getPayload(),
                         MessageReadEvent.class
+                );
+                eventPublisher.publishEvent(messageEvent);
+            }
+
+            case MESSAGE_EDITED -> {
+                MessageEditedEvent messageEvent = objectMapper.readValue(
+                        event.getPayload(),
+                        MessageEditedEvent.class
+                );
+                eventPublisher.publishEvent(messageEvent);
+            }
+
+            case MESSAGE_PINNED -> {
+                MessagePinnedEvent messageEvent = objectMapper.readValue(
+                        event.getPayload(),
+                        MessagePinnedEvent.class
                 );
                 eventPublisher.publishEvent(messageEvent);
             }
