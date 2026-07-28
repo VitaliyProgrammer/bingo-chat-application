@@ -88,6 +88,7 @@ public class ReminderScheduler {
             );
 
             event.setProcessed(true);
+            outBoxEventRepository.save(event);
 
             log.info("Reminder delivered: messageId={}, userId={}",
                     reminderEvent.messageId(), reminderEvent.userId());
@@ -97,6 +98,8 @@ public class ReminderScheduler {
             event.setRetryCount(event.getRetryCount() + 1);
 
             event.setNextRetryAt(LocalDateTime.now().plusMinutes(event.getRetryCount() * 2L));
+
+            outBoxEventRepository.save(event);
 
             log.error("Failed to process reminder event: eventId={}", event.getId(), exception);
         }
