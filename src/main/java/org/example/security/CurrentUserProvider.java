@@ -2,11 +2,11 @@ package org.example.security;
 
 import java.security.Principal;
 import lombok.RequiredArgsConstructor;
-import org.example.configuration.websocket.WebSocketPrincipal;
 import org.example.entity.User;
 import org.example.exception.AuthenticationException;
 import org.example.exception.UserNotFoundException;
 import org.example.repository.UserRepository;
+import org.example.security.websocket.model.WebSocketPrincipal;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -34,6 +34,7 @@ public class CurrentUserProvider {
                     .orElseThrow(() -> new UserNotFoundException("User not found!"));
         }
 
-        throw new AuthenticationException("Unsupported principal type!");
+        String actualType = principal == null ? "null" : principal.getClass().getName();
+        throw new AuthenticationException("Unsupported principal type: " + actualType);
     }
 }
