@@ -13,7 +13,7 @@ import org.springframework.stereotype.Repository;
 public interface ChatRepository extends JpaRepository<Chat, Long> {
 
     @Query("""
-            SELECT c FROM Chat c
+            SELECT DISTINCT c FROM Chat c
             JOIN FETCH c.participants
             JOIN c.participants p
             WHERE p.id = :userId

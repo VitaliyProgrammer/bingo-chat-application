@@ -22,6 +22,7 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -75,6 +76,9 @@ public class ChatServiceImpl implements ChatService {
             return chatMapper.toDto(existingChat.get(), timeFormatter, locale);
         }
 
+        senderUser = userRepository.findById(senderId)
+                .orElseThrow(() -> new UserNotFoundException("Sender user not found!"));
+
         User receiverUser = userRepository.findById(receiverId)
                 .orElseThrow(() -> {
                     log.error("Receiver user not found: chatId={}", receiverId);
@@ -84,6 +88,7 @@ public class ChatServiceImpl implements ChatService {
         Chat chat = new Chat();
         chat.setChatType(ChatType.PRIVATE);
         chat.setOwnerId(senderId);
+        chat.setLastActivityTime(LocalDateTime.now());
         chat.getParticipants().add(senderUser);
         chat.getParticipants().add(receiverUser);
 
