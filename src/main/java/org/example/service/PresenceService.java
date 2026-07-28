@@ -1,10 +1,12 @@
 package org.example.service;
 
+import java.security.Principal;
+
 public interface PresenceService {
 
-    void heartbeat();
+    void heartbeat(Principal principal);
 
-    void updateLastSeen();
+    void updateLastSeen(Principal principal);
 
     void disconnect();
 }

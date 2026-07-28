@@ -1,5 +1,6 @@
 package org.example.controller.websocket;
 
+import java.security.Principal;
 import lombok.RequiredArgsConstructor;
 import org.example.service.PresenceService;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -12,14 +13,14 @@ public class PresenceWebSocketController {
     private final PresenceService presenceService;
 
     @MessageMapping("/presence.ping")
-    public void ping() {
+    public void ping(Principal principal) {
 
-        presenceService.heartbeat();
+        presenceService.heartbeat(principal);
     }
 
     @MessageMapping("/presence.lastSeen")
-    public void updateLastSeen() {
+    public void updateLastSeen(Principal principal) {
 
-        presenceService.updateLastSeen();
+        presenceService.updateLastSeen(principal);
     }
 }

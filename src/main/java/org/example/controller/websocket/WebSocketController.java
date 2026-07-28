@@ -39,8 +39,8 @@ public class WebSocketController {
     }
 
     @MessageMapping("/chat.ack")
-    public void acknowledgeMessage(MessageAckRequestDto request) {
+    public void acknowledgeMessage(MessageAckRequestDto request, Principal principal) {
 
-        messageService.acknowledge(request);
+        messageService.acknowledge(request, principal);
     }
 }

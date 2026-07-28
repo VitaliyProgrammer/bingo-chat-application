@@ -228,7 +228,14 @@ public class MessageServiceImpl implements MessageService {
 
     @Override
     @Transactional
-    public void acknowledge(MessageAckRequestDto request) {
+    public void acknowledge(MessageAckRequestDto request, Principal principal) {
+
+        User currentUser = currentUserProvider.getAuthenticatedUser(principal);
+
+        Message message = getMessageOrThrow(request.messageId());
+
+        validateUserInChat(message.getChat().getId(), currentUser.getId());
+        validateNotSender(message, currentUser);
 
         String acknowledgeKey = "ack:" + request.messageId();
 
@@ -236,9 +243,10 @@ public class MessageServiceImpl implements MessageService {
 
         redisTemplate.opsForSet().remove("pending:messages", request.messageId().toString());
 
-        log.info("ACK received: messageId={}, chatId={}", request.messageId(), request.chatId());
+        log.info("ACK received: messageId={}, chatId={}, userId={}",
+                message.getId(), message.getChat().getId(), currentUser.getId());
 
-        markAsDeliveredInternal(request.messageId());
+        markAsDeliveredInternal(message);
     }
 
     @Override
@@ -405,9 +413,7 @@ public class MessageServiceImpl implements MessageService {
         message.setReplyTo(parentMessage);
     }
 
-    private void markAsDeliveredInternal(Long messageId) {
-
-        Message message = getMessageOrThrow(messageId);
+    private void markAsDeliveredInternal(Message message) {
 
         if (message.getStatus() != MessageStatus.SENT) {
             return;

@@ -1,5 +1,6 @@
 package org.example.service.impl;
 
+import java.security.Principal;
 import java.time.Duration;
 import lombok.RequiredArgsConstructor;
 import org.example.security.CurrentUserProvider;
@@ -18,17 +19,17 @@ public class PresenceServiceImpl implements PresenceService {
     private final RedisService redisService;
 
     @Override
-    public void heartbeat() {
+    public void heartbeat(Principal principal) {
 
-        Long userId = currentUserProvider.getAuthenticatedUser().getId();
+        Long userId = currentUserProvider.getAuthenticatedUser(principal).getId();
 
         redisService.setUserOnline(userId, ONLINE_TTL);
     }
 
     @Override
-    public void updateLastSeen() {
+    public void updateLastSeen(Principal principal) {
 
-        Long userId = currentUserProvider.getAuthenticatedUser().getId();
+        Long userId = currentUserProvider.getAuthenticatedUser(principal).getId();
 
         redisService.setLastSeen(userId);
     }

@@ -42,7 +42,7 @@ public class RedisServiceImpl implements RedisService {
     @Override
     public void setUserOnline(Long userId) {
 
-        setUserOnline(userId, Duration.ofMinutes(5));
+        setUserOnline(userId, Duration.ofSeconds(40));
     }
 
     @Override

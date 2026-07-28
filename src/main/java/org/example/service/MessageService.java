@@ -26,7 +26,7 @@ public interface MessageService {
 
     MessagePageResponseDto getChatMessages(Long chatId, int page, int size);
 
-    void acknowledge(MessageAckRequestDto request);
+    void acknowledge(MessageAckRequestDto request, Principal principal);
 
     MessageResponseDto pinMessage(Long messageId);
 
