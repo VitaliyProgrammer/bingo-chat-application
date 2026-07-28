@@ -2,6 +2,7 @@ package org.example.security.websocket;
 
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.entity.User;
 import org.example.exception.UserNotFoundException;
 import org.example.repository.UserRepository;
@@ -13,8 +14,10 @@ import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
+import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class JwtChannelInterceptor implements ChannelInterceptor {
@@ -27,7 +30,16 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
 
-        StompHeaderAccessor accessor = StompHeaderAccessor.wrap(message);
+        StompHeaderAccessor accessor =
+                MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
+
+        if (accessor == null) {
+            return message;
+        }
+
+        log.debug("STOMP preSend: command={}, sessionId={}, destination={}, userBefore={}",
+                accessor.getCommand(), accessor.getSessionId(), accessor.getDestination(),
+                accessor.getUser());
 
         if (StompCommand.CONNECT.equals(accessor.getCommand())) {
 
@@ -43,6 +55,9 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
                     .orElseThrow(() -> new UserNotFoundException("User not found!"));
 
             accessor.setUser(new WebSocketPrincipal(user.getId()));
+
+            log.debug("STOMP CONNECT authenticated: sessionId={}, userId={}",
+                    accessor.getSessionId(), user.getId());
         }
         return message;
     }
