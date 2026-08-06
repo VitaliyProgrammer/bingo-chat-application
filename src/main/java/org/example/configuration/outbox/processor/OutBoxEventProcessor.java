@@ -15,6 +15,7 @@ import org.example.configuration.scheduler.SchedulerLockManager;
 import org.example.event.MessageDeliveredEvent;
 import org.example.event.MessageEditedEvent;
 import org.example.event.MessagePinnedEvent;
+import org.example.event.MessageReactedEvent;
 import org.example.event.MessageReadEvent;
 import org.example.event.MessageSentEvent;
 import org.springframework.context.ApplicationEventPublisher;
@@ -166,6 +167,14 @@ public class OutBoxEventProcessor {
                 MessagePinnedEvent messageEvent = objectMapper.readValue(
                         event.getPayload(),
                         MessagePinnedEvent.class
+                );
+                eventPublisher.publishEvent(messageEvent);
+            }
+
+            case MESSAGE_REACTED -> {
+                MessageReactedEvent messageEvent = objectMapper.readValue(
+                        event.getPayload(),
+                        MessageReactedEvent.class
                 );
                 eventPublisher.publishEvent(messageEvent);
             }

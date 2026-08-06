@@ -8,6 +8,7 @@ import org.example.configuration.outbox.status.OutboxEventStatus;
 import org.example.event.MessageDeliveredEvent;
 import org.example.event.MessageEditedEvent;
 import org.example.event.MessagePinnedEvent;
+import org.example.event.MessageReactedEvent;
 import org.example.event.MessageReadEvent;
 import org.example.event.MessageRemindedEvent;
 import org.example.event.MessageSentEvent;
@@ -71,6 +72,15 @@ public class OutBoxEventFactory {
         return build(
                 event.message().id(),
                 OutboxEventStatus.MESSAGE_PINNED,
+                event
+        );
+    }
+
+    public OutboxEvent messageReacted(MessageReactedEvent event) {
+
+        return build(
+                event.message().id(),
+                OutboxEventStatus.MESSAGE_REACTED,
                 event
         );
     }

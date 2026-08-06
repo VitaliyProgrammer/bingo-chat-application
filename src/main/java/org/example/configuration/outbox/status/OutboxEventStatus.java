@@ -6,5 +6,6 @@ public enum OutboxEventStatus {
     MESSAGE_READ,
     MESSAGE_REMINDED,
     MESSAGE_EDITED,
-    MESSAGE_PINNED
+    MESSAGE_PINNED,
+    MESSAGE_REACTED
 }

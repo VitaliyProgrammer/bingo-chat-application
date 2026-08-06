@@ -23,3 +23,7 @@ databaseChangeLog:
       file: db/changelog/changes/011-add-feedback-admin-reply.yaml
   - include:
       file: db/changelog/changes/012-add-feedback-reply-seen.yaml
+  - include:
+      file: db/changelog/changes/013-force-utf8mb4-emoji-support.yaml
+  - include:
+      file: db/changelog/changes/014-create-message-reactions-table.yaml

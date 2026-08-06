@@ -4,6 +4,7 @@ import java.security.Principal;
 import org.example.dto.request.MessageAckRequestDto;
 import org.example.dto.request.MessageReminderRequestDto;
 import org.example.dto.request.MessageRequestDto;
+import org.example.dto.request.ReactionRequestDto;
 import org.example.dto.response.MessagePageResponseDto;
 import org.example.dto.response.MessageResponseDto;
 
@@ -31,4 +32,8 @@ public interface MessageService {
     MessageResponseDto pinMessage(Long messageId);
 
     MessageResponseDto setReminder(Long messageId, MessageReminderRequestDto request);
+
+    MessageResponseDto addReaction(Long messageId, ReactionRequestDto request);
+
+    MessageResponseDto removeReaction(Long messageId);
 }

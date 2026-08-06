@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: force-utf8mb4-emoji-support
+      author: vitaliy
+      changes:
+
+        - sql:
+            sql: >-
+              ALTER TABLE messages
+              MODIFY content VARCHAR(2000)
+              CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;

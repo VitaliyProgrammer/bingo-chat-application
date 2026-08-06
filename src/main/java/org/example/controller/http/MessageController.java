@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.dto.request.EditMessageRequestDto;
+import org.example.dto.request.ReactionRequestDto;
 import org.example.dto.response.MessagePageResponseDto;
 import org.example.dto.response.MessageResponseDto;
 import org.example.service.MessageService;
@@ -74,6 +75,26 @@ public class MessageController {
     public MessageResponseDto pinMessage(@PathVariable Long id) {
 
         return messageService.pinMessage(id);
+    }
+
+    @PostMapping("/{id}/reactions")
+    @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "Add or replace reaction",
+            description = "Sets the caller's reaction on a message, replacing any previous "
+                    + "reaction from the same user")
+    public MessageResponseDto addReaction(@PathVariable Long id,
+                                          @Valid @RequestBody ReactionRequestDto request) {
+
+        return messageService.addReaction(id, request);
+    }
+
+    @DeleteMapping("/{id}/reactions")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Remove reaction",
+            description = "Removes the caller's own reaction from a message")
+    public MessageResponseDto removeReaction(@PathVariable Long id) {
+
+        return messageService.removeReaction(id);
     }
 
     @GetMapping("/chat/{chatId}")

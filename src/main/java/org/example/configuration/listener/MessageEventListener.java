@@ -9,6 +9,7 @@ import org.example.dto.response.UnreadMessagesResponseDto;
 import org.example.event.MessageDeliveredEvent;
 import org.example.event.MessageEditedEvent;
 import org.example.event.MessagePinnedEvent;
+import org.example.event.MessageReactedEvent;
 import org.example.event.MessageReadEvent;
 import org.example.event.MessageSentEvent;
 import org.example.service.RedisService;
@@ -143,6 +144,23 @@ public class MessageEventListener {
         }
 
         log.debug("Event: message pinned -> chatId={}, messageId={}",
+                event.chatId(), event.message().id());
+
+        messagingTemplate.convertAndSend("/topic/chat/" + event.chatId(), event.message());
+    }
+
+    @Async("eventExecutor")
+    @EventListener
+    public void handleMessageReacted(MessageReactedEvent event) {
+
+        String key = "event:reacted:" + event.message().id() + ":" + event.message().reactions();
+
+        if (!redisService.setIfAbsent(key, "1", IDEMPOTENCY_TTL)) {
+            log.debug("Duplicate REACTED event skipped: {}", key);
+            return;
+        }
+
+        log.debug("Event: message reacted -> chatId={}, messageId={}",
                 event.chatId(), event.message().id());
 
         messagingTemplate.convertAndSend("/topic/chat/" + event.chatId(), event.message());

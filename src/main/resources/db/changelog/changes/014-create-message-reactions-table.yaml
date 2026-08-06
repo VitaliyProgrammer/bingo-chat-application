@@ -1,0 +1,75 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-message-reactions-table
+      author: vitaliy
+      changes:
+
+        - createTable:
+            tableName: message_reactions
+            columns:
+
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+
+              - column:
+                  name: message_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: emoji
+                  type: VARCHAR(16)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: created_at
+                  type: DATETIME
+                  constraints:
+                    nullable: false
+
+        - sql:
+            sql: >-
+              ALTER TABLE message_reactions
+              MODIFY emoji VARCHAR(16)
+              CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;
+
+        - addUniqueConstraint:
+            tableName: message_reactions
+            columnNames: message_id, user_id
+            constraintName: uk_message_reactions_message_user
+
+        - createIndex:
+            tableName: message_reactions
+            indexName: idx_message_reactions_message
+            columns:
+              - column:
+                  name: message_id
+
+        - addForeignKeyConstraint:
+            baseTableName: message_reactions
+            baseColumnNames: message_id
+            referencedTableName: messages
+            referencedColumnNames: id
+            constraintName: fk_message_reactions_message
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            baseTableName: message_reactions
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_message_reactions_user
+            onDelete: CASCADE
