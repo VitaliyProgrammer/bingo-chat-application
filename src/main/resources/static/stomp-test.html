@@ -5,6 +5,8 @@
     <title>Bingo Messenger - Ultimate STOMP/REST Test Client</title>
 
     <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/twemoji@14.0.2/dist/twemoji.min.js" crossorigin="anonymous"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@1/index.js"></script>
 
     <style>
         :root {
@@ -311,10 +313,12 @@
         <!-- MESSAGES -->
         <div class="section" style="flex: 1; display: flex; flex-direction: column;">
             <h3>MESSAGES & NOTES</h3>
-            <div style="display: grid; grid-template-columns: 100px 1fr auto; gap: 5px;">
+            <div style="display: grid; grid-template-columns: 100px 1fr auto auto; gap: 5px; position: relative;">
                 <input id="msgChatId" placeholder="ChatID">
                 <input id="msgContent" placeholder="Message content...">
+                <button class="secondary" onclick="toggleEmojiPicker()" title="Insert emoji">😀</button>
                 <button onclick="sendMessage()">Send</button>
+                <emoji-picker id="emojiPicker" data-source="https://cdn.jsdelivr.net/npm/emoji-picker-element-data@^1/en/emojibase/data.json" style="display:none; position:absolute; top: 100%; right: 0; z-index: 10;"></emoji-picker>
             </div>
             <div style="display: flex; gap: 5px; margin-top: 5px;">
                 <input id="msgId" placeholder="MsgID" style="width: 80px;">
@@ -338,6 +342,16 @@
             <div class="grid-buttons">
                 <button class="secondary" onclick="setReminder()">Reminder</button>
                 <button class="secondary" onclick="pinNote()">Pin Note</button>
+            </div>
+
+            <h4>Reactions (on MsgID above)</h4>
+            <div style="position: relative;">
+                <div class="grid-buttons" id="reactionButtons"></div>
+                <div style="display: flex; gap: 5px; margin-top: 5px;">
+                    <button class="secondary" style="flex: 1;" onclick="toggleReactionPicker()" title="Pick any emoji from the full set">➕ More reactions...</button>
+                    <button class="danger" style="flex: 1;" onclick="removeReaction()">Remove My Reaction</button>
+                </div>
+                <emoji-picker id="reactionPicker" data-source="https://cdn.jsdelivr.net/npm/emoji-picker-element-data@^1/en/emojibase/data.json" style="display:none; position:absolute; top: 100%; left: 0; z-index: 10;"></emoji-picker>
             </div>
         </div>
 
@@ -415,6 +429,7 @@
         }
 
         entry.innerHTML = html;
+        if (window.twemoji) twemoji.parse(entry);
         box.insertBefore(entry, box.firstChild);
     }
 
@@ -435,6 +450,7 @@
         }
 
         entry.innerHTML = html;
+        if (window.twemoji) twemoji.parse(entry);
         box.insertBefore(entry, box.firstChild);
     }
 
@@ -740,6 +756,72 @@
         const chatId = document.getElementById('msgChatId').value;
         apiFetch(`/messages/chat/${chatId}?page=0&size=20`);
     }
+
+    // --- EMOJI ---
+    // The input loses focus the moment the picker button/element is clicked, and
+    // browsers reset selectionStart/End to the end on refocus - so the cursor spot
+    // has to be captured NOW, while focus is still on the textbox, or it's lost.
+    let savedCursorPos = null;
+
+    function toggleEmojiPicker() {
+        const picker = document.getElementById('emojiPicker');
+        const contentInput = document.getElementById('msgContent');
+        if (picker.style.display === 'none') {
+            savedCursorPos = { start: contentInput.selectionStart, end: contentInput.selectionEnd };
+        }
+        picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
+    }
+
+    document.getElementById('emojiPicker').addEventListener('emoji-click', (event) => {
+        const contentInput = document.getElementById('msgContent');
+        const emoji = event.detail.unicode;
+        const start = savedCursorPos ? savedCursorPos.start : contentInput.value.length;
+        const end = savedCursorPos ? savedCursorPos.end : contentInput.value.length;
+
+        contentInput.value = contentInput.value.slice(0, start) + emoji + contentInput.value.slice(end);
+
+        document.getElementById('emojiPicker').style.display = 'none';
+        contentInput.focus();
+        const caretPos = start + emoji.length;
+        contentInput.setSelectionRange(caretPos, caretPos);
+    });
+
+    // --- REACTIONS ---
+    const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
+
+    QUICK_REACTIONS.forEach(emoji => {
+        const btn = document.createElement('button');
+        btn.className = 'secondary';
+        btn.textContent = emoji;
+        btn.onclick = () => addReaction(emoji);
+        document.getElementById('reactionButtons').appendChild(btn);
+    });
+    if (window.twemoji) twemoji.parse(document.getElementById('reactionButtons'));
+
+    function addReaction(emoji) {
+        const id = document.getElementById('msgId').value;
+        if (!id) return alert("Встав MsgID!");
+        apiFetch(`/messages/${id}/reactions`, {
+            method: 'POST',
+            body: JSON.stringify({ emoji })
+        });
+    }
+
+    function removeReaction() {
+        const id = document.getElementById('msgId').value;
+        if (!id) return alert("Встав MsgID!");
+        apiFetch(`/messages/${id}/reactions`, { method: 'DELETE' });
+    }
+
+    function toggleReactionPicker() {
+        const picker = document.getElementById('reactionPicker');
+        picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
+    }
+
+    document.getElementById('reactionPicker').addEventListener('emoji-click', (event) => {
+        addReaction(event.detail.unicode);
+        document.getElementById('reactionPicker').style.display = 'none';
+    });
 
     // --- NOTES ---
     function setReminder() {
