@@ -55,6 +55,15 @@ public class Chat {
     @Column(name = "owner_Id", nullable = false)
     private Long ownerId;
 
+    @Column(name = "name", length = 100)
+    private String name;
+
+    @Column(name = "is_private", nullable = false)
+    private boolean privateGroup = true;
+
+    @Column(name = "avatar_url")
+    private String avatarUrl;
+
     @ManyToMany
     @JoinTable(name = "chat_participants",
             joinColumns = @JoinColumn(name = "chat_id"),

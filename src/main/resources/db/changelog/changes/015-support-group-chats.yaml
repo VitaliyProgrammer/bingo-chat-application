@@ -1,0 +1,16 @@
+databaseChangeLog:
+  - changeSet:
+      id: support-group-chats
+      author: vitaliy
+      changes:
+
+        - dropUniqueConstraint:
+            tableName: chats
+            constraintName: uk_chat_owner_type
+
+        - addColumn:
+            tableName: chats
+            columns:
+              - column:
+                  name: name
+                  type: VARCHAR(100)

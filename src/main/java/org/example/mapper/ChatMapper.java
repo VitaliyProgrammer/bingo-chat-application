@@ -16,6 +16,7 @@ import org.mapstruct.Mapping;
 public interface ChatMapper {
 
     @Mapping(target = "type", source = "chatType")
+    @Mapping(target = "isPrivate", source = "privateGroup")
     @Mapping(target = "participantIds", expression = "java(participants(chat))")
     @Mapping(target = "lastSeen", expression = "java(formatLastSeen(chat, timeFormatter, locale))")
     ChatResponseDto toDto(Chat chat, @Context PresenceTimeFormatter timeFormatter,

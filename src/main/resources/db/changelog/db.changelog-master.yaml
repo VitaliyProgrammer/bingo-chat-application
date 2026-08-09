@@ -27,3 +27,7 @@ databaseChangeLog:
       file: db/changelog/changes/013-force-utf8mb4-emoji-support.yaml
   - include:
       file: db/changelog/changes/014-create-message-reactions-table.yaml
+  - include:
+      file: db/changelog/changes/015-support-group-chats.yaml
+  - include:
+      file: db/changelog/changes/016-group-privacy-and-avatar.yaml

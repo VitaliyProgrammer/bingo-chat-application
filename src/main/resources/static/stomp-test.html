@@ -243,6 +243,33 @@
             <button class="secondary" onclick="getSidebar()">Get Sidebar</button>
             <button class="secondary" onclick="getSelfChat()">Get Self Chat</button>
         </div>
+        <div style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
+            <input id="groupName" placeholder="Group name">
+            <input id="groupParticipantIds" placeholder="Participant IDs, comma-separated (e.g. 2,3)">
+            <label style="display: flex; align-items: center; gap: 5px; font-size: 13px; margin: 6px 0;">
+                <input type="checkbox" id="groupIsPrivate" checked style="width: auto; margin: 0;">
+                Private group
+            </label>
+            <button class="success" style="width: 100%; margin-top: 5px;" onclick="createGroupChat()">Create Group Chat</button>
+        </div>
+        <div style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
+            <h4>Group Members (owner-only)</h4>
+            <input id="groupChatId" placeholder="Group Chat ID">
+            <input id="addParticipantIds" placeholder="User IDs to add, comma-separated">
+            <button class="success" style="width: 100%; margin-top: 5px;" onclick="addParticipants()">Add Participants</button>
+            <input id="removeParticipantId" placeholder="User ID to remove" style="margin-top: 5px;">
+            <button class="danger" style="width: 100%; margin-top: 5px;" onclick="removeParticipant()">Remove Participant</button>
+            <button class="danger" style="width: 100%; margin-top: 5px;" onclick="leaveGroupChat()">Leave Group</button>
+        </div>
+        <div style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
+            <h4>Group Avatar (owner-only, uses Group Chat ID above)</h4>
+            <img id="groupAvatarPreview" class="avatar-preview" style="display: none;" alt="Group avatar">
+            <input type="file" id="groupAvatarFile" accept="image/*" style="font-size: 11px;">
+            <div class="grid-buttons" style="margin-top: 5px;">
+                <button class="success" onclick="uploadGroupAvatar()">Upload Group Avatar</button>
+                <button class="danger" onclick="deleteGroupAvatar()">Delete Group Avatar</button>
+            </div>
+        </div>
     </div>
 
     <!-- WEBSOCKET -->
@@ -617,6 +644,101 @@
     function createPrivateChat() {
         const userId = document.getElementById('targetUserId').value;
         apiFetch(`/chats/private?userId=${userId}`, { method: 'POST' });
+    }
+    function createGroupChat() {
+        const name = document.getElementById('groupName').value;
+        const idsRaw = document.getElementById('groupParticipantIds').value;
+        const isPrivate = document.getElementById('groupIsPrivate').checked;
+        const participantIds = idsRaw.split(',')
+            .map(id => id.trim())
+            .filter(id => id.length > 0)
+            .map(Number);
+
+        if (!name || participantIds.length === 0) {
+            return alert("Введи назву групи і хоча б одного учасника!");
+        }
+
+        apiFetch('/chats/group', {
+            method: 'POST',
+            body: JSON.stringify({ name, participantIds, isPrivate })
+        });
+    }
+    async function uploadGroupAvatar() {
+        const chatId = document.getElementById('groupChatId').value;
+        const fileInput = document.getElementById('groupAvatarFile');
+        if (!chatId) return alert("Встав Group Chat ID!");
+        if (fileInput.files.length === 0) return alert("Select file!");
+
+        const formData = new FormData();
+        formData.append("file", fileInput.files[0]);
+
+        const url = API_BASE + `/chats/${chatId}/avatar`;
+        const headers = jwtToken ? { 'Authorization': 'Bearer ' + jwtToken } : {};
+
+        try {
+            const response = await fetch(url, { method: 'POST', body: formData, headers: headers });
+            const status = response.status;
+            const result = (await response.text()).replace(/^"|"$/g, '');
+            logRest('POST', `/chats/${chatId}/avatar`, status, result);
+
+            if (status < 400) {
+                showGroupAvatarPreview(result);
+            }
+        } catch (error) {
+            logRest('POST', `/chats/${chatId}/avatar`, "ERROR", error.message, true);
+        }
+    }
+    async function deleteGroupAvatar() {
+        const chatId = document.getElementById('groupChatId').value;
+        if (!chatId) return alert("Встав Group Chat ID!");
+
+        await apiFetch(`/chats/${chatId}/avatar`, { method: 'DELETE' });
+        hideGroupAvatarPreview();
+    }
+    function showGroupAvatarPreview(avatarUrl) {
+        const img = document.getElementById('groupAvatarPreview');
+        // Cache-bust: uploading a new file re-uses the old <img> element, and the
+        // browser would otherwise keep showing the previous picture from cache.
+        img.src = API_BASE + '/uploads/' + avatarUrl + '?t=' + Date.now();
+        img.style.display = 'block';
+    }
+    function hideGroupAvatarPreview() {
+        const img = document.getElementById('groupAvatarPreview');
+        img.style.display = 'none';
+        img.src = '';
+    }
+    function addParticipants() {
+        const chatId = document.getElementById('groupChatId').value;
+        const idsRaw = document.getElementById('addParticipantIds').value;
+        const participantIds = idsRaw.split(',')
+            .map(id => id.trim())
+            .filter(id => id.length > 0)
+            .map(Number);
+
+        if (!chatId || participantIds.length === 0) {
+            return alert("Встав Group Chat ID і хоча б один User ID!");
+        }
+
+        apiFetch(`/chats/${chatId}/participants`, {
+            method: 'POST',
+            body: JSON.stringify({ participantIds })
+        });
+    }
+    function removeParticipant() {
+        const chatId = document.getElementById('groupChatId').value;
+        const userId = document.getElementById('removeParticipantId').value;
+
+        if (!chatId || !userId) {
+            return alert("Встав Group Chat ID і User ID для видалення!");
+        }
+
+        apiFetch(`/chats/${chatId}/participants/${userId}`, { method: 'DELETE' });
+    }
+    function leaveGroupChat() {
+        const chatId = document.getElementById('groupChatId').value;
+        if (!chatId) return alert("Встав Group Chat ID!");
+
+        apiFetch(`/chats/${chatId}/leave`, { method: 'POST' });
     }
     function openChat() {
         const chatId = document.getElementById('targetChatId').value;

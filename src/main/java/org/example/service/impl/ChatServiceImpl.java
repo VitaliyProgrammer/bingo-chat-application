@@ -1,12 +1,24 @@
 package org.example.service.impl;
 
+import java.time.LocalDateTime;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.dto.request.AddParticipantsRequestDto;
+import org.example.dto.request.GroupChatRequestDto;
 import org.example.dto.response.ChatListItemResponseDto;
 import org.example.dto.response.ChatResponseDto;
 import org.example.entity.Chat;
 import org.example.entity.User;
 import org.example.entity.type.ChatType;
+import org.example.exception.BadRequestException;
+import org.example.exception.ChatNotFoundException;
+import org.example.exception.ForbiddenActionException;
 import org.example.exception.UserNotFoundException;
 import org.example.mapper.ChatListMapper;
 import org.example.mapper.ChatMapper;
@@ -15,23 +27,25 @@ import org.example.repository.UserRepository;
 import org.example.security.CurrentUserProvider;
 import org.example.security.audit.SecurityAuditService;
 import org.example.service.ChatService;
+import org.example.service.FileService;
 import org.example.service.RedisService;
 import org.example.service.presence.PresenceTimeFormatter;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Optional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class ChatServiceImpl implements ChatService {
+
+    // A group needs to be visibly different from a private chat (2 people) -
+    // creator + at least 2 others, so 3+ people total.
+    private static final int MIN_OTHER_PARTICIPANTS = 2;
+
+    private static final String GROUP_AVATARS_DIR = "avatars/groups";
 
     private final ChatRepository chatRepository;
     private final UserRepository userRepository;
@@ -47,6 +61,8 @@ public class ChatServiceImpl implements ChatService {
     private final RedisService redisService;
 
     private final SecurityAuditService securityAuditService;
+
+    private final FileService fileService;
 
     @Override
     @Transactional
@@ -79,7 +95,7 @@ public class ChatServiceImpl implements ChatService {
         senderUser = userRepository.findById(senderId)
                 .orElseThrow(() -> new UserNotFoundException("Sender user not found!"));
 
-        User receiverUser = userRepository.findById(receiverId)
+        final User receiverUser = userRepository.findById(receiverId)
                 .orElseThrow(() -> {
                     log.error("Receiver user not found: chatId={}", receiverId);
                     return new UserNotFoundException("User not found!");
@@ -98,6 +114,184 @@ public class ChatServiceImpl implements ChatService {
                 savedChat.getId(), senderId, receiverId);
 
         return chatMapper.toDto(savedChat, timeFormatter, locale);
+    }
+
+    @Override
+    @Transactional
+    public ChatResponseDto createGroupChat(GroupChatRequestDto request) {
+
+        User currentUser = currentUserProvider.getAuthenticatedUser();
+        Long currentUserId = currentUser.getId();
+
+        Set<Long> otherParticipantIds = new HashSet<>(request.participantIds());
+        otherParticipantIds.remove(currentUserId);
+
+        Locale locale = currentLocale();
+
+        if (otherParticipantIds.size() < MIN_OTHER_PARTICIPANTS) {
+            throw new BadRequestException(messageSource.getMessage(
+                    "groupChat.participants.tooFew", null,
+                    "A group needs at least 2 other participants besides you!", locale));
+        }
+
+        List<User> otherParticipants = userRepository.findAllById(otherParticipantIds);
+
+        if (otherParticipants.size() != otherParticipantIds.size()) {
+            log.warn("Group chat creation failed: some participants not found, ownerId={}",
+                    currentUserId);
+            throw new UserNotFoundException("One or more participants not found!");
+        }
+
+        Chat chat = new Chat();
+        chat.setChatType(ChatType.GROUP);
+        chat.setName(request.name());
+        chat.setOwnerId(currentUserId);
+        chat.setPrivateGroup(request.isPrivate() == null || request.isPrivate());
+        chat.getParticipants().add(currentUser);
+        chat.getParticipants().addAll(otherParticipants);
+
+        Chat savedChat = chatRepository.save(chat);
+
+        log.info("Group chat created: chatId={}, ownerId={}, participants={}",
+                savedChat.getId(), currentUserId, chat.getParticipants().size());
+
+        return chatMapper.toDto(savedChat, timeFormatter, locale);
+    }
+
+    @Override
+    @Transactional
+    public ChatResponseDto addParticipants(Long chatId, AddParticipantsRequestDto request) {
+
+        User currentUser = currentUserProvider.getAuthenticatedUser();
+        Locale locale = currentLocale();
+
+        Chat chat = getChatOrThrow(chatId);
+        requireGroupOwnedByCurrentUser(chat, currentUser.getId(), locale);
+
+        Set<Long> newParticipantIds = request.participantIds();
+
+        boolean alreadyMember = chat.getParticipants().stream()
+                .map(User::getId)
+                .anyMatch(newParticipantIds::contains);
+
+        if (alreadyMember) {
+            throw new BadRequestException(messageSource.getMessage(
+                    "chat.participantAlreadyMember", null,
+                    "One or more users are already in this group!", locale));
+        }
+
+        List<User> newParticipants = userRepository.findAllById(newParticipantIds);
+
+        if (newParticipants.size() != newParticipantIds.size()) {
+            log.warn("Add participants failed: some users not found, chatId={}", chatId);
+            throw new UserNotFoundException("One or more participants not found!");
+        }
+
+        chat.getParticipants().addAll(newParticipants);
+        Chat savedChat = chatRepository.save(chat);
+
+        log.info("Participants added: chatId={}, addedCount={}, byUserId={}",
+                chatId, newParticipants.size(), currentUser.getId());
+
+        return chatMapper.toDto(savedChat, timeFormatter, locale);
+    }
+
+    @Override
+    @Transactional
+    public ChatResponseDto removeParticipant(Long chatId, Long userId) {
+
+        User currentUser = currentUserProvider.getAuthenticatedUser();
+        Locale locale = currentLocale();
+
+        Chat chat = getChatOrThrow(chatId);
+        requireGroupOwnedByCurrentUser(chat, currentUser.getId(), locale);
+
+        if (userId.equals(chat.getOwnerId())) {
+            throw new BadRequestException(messageSource.getMessage(
+                    "chat.ownerCannotBeRemoved", null,
+                    "Owner can't be removed - transfer ownership or leave the group instead!",
+                    locale));
+        }
+
+        boolean removed = chat.getParticipants().removeIf(user -> user.getId().equals(userId));
+
+        if (!removed) {
+            throw new BadRequestException(messageSource.getMessage(
+                    "chat.participantNotMember", null,
+                    "That user is not a member of this group!", locale));
+        }
+
+        Chat savedChat = chatRepository.save(chat);
+
+        log.info("Participant removed: chatId={}, removedUserId={}, byUserId={}",
+                chatId, userId, currentUser.getId());
+
+        return chatMapper.toDto(savedChat, timeFormatter, locale);
+    }
+
+    @Override
+    @Transactional
+    public String updateGroupAvatar(Long chatId, MultipartFile file) {
+
+        User currentUser = currentUserProvider.getAuthenticatedUser();
+        Locale locale = currentLocale();
+
+        Chat chat = getChatOrThrow(chatId);
+        requireGroupOwnedByCurrentUser(chat, currentUser.getId(), locale);
+
+        if (chat.getAvatarUrl() != null) {
+            fileService.deleteFile(chat.getAvatarUrl());
+        }
+
+        String filePath = fileService.saveFile(GROUP_AVATARS_DIR, file);
+        chat.setAvatarUrl(filePath);
+        chatRepository.save(chat);
+
+        log.info("Group avatar updated: chatId={}, byUserId={}", chatId, currentUser.getId());
+
+        return filePath;
+    }
+
+    @Override
+    @Transactional
+    public void deleteGroupAvatar(Long chatId) {
+
+        User currentUser = currentUserProvider.getAuthenticatedUser();
+        Locale locale = currentLocale();
+
+        Chat chat = getChatOrThrow(chatId);
+        requireGroupOwnedByCurrentUser(chat, currentUser.getId(), locale);
+
+        if (chat.getAvatarUrl() != null) {
+            fileService.deleteFile(chat.getAvatarUrl());
+            chat.setAvatarUrl(null);
+            chatRepository.save(chat);
+        }
+
+        log.info("Group avatar deleted: chatId={}, byUserId={}", chatId, currentUser.getId());
+    }
+
+    @Override
+    @Transactional
+    public void leaveGroupChat(Long chatId) {
+
+        User currentUser = currentUserProvider.getAuthenticatedUser();
+        Long currentUserId = currentUser.getId();
+        Locale locale = currentLocale();
+
+        Chat chat = getChatOrThrow(chatId);
+        requireGroupChat(chat, locale);
+
+        if (currentUserId.equals(chat.getOwnerId()) && chat.getParticipants().size() > 1) {
+            throw new BadRequestException(messageSource.getMessage(
+                    "chat.ownerCannotLeaveWhileOthersPresent", null,
+                    "As the owner, you can't leave while other participants remain!", locale));
+        }
+
+        chat.getParticipants().removeIf(user -> user.getId().equals(currentUserId));
+        chatRepository.save(chat);
+
+        log.info("User left group chat: chatId={}, userId={}", chatId, currentUserId);
     }
 
     @Override
@@ -139,6 +333,27 @@ public class ChatServiceImpl implements ChatService {
                     "Personal notes",
                     false,
                     true,
+                    null,
+                    chat.getLastActivityTime()
+            );
+        }
+
+        if (chat.getChatType() == ChatType.GROUP) {
+
+            // A group has no single "companion" - fields that only make sense for a
+            // 1-on-1 chat (companionId, online presence) are left empty; avatarUrl
+            // comes from the group's own uploaded picture, if any.
+            return new ChatListItemResponseDto(
+                    chat.getId(),
+                    null,
+                    chat.getName(),
+                    chat.getAvatarUrl(),
+                    lastMessage,
+                    unreadCount,
+                    null,
+                    false,
+                    false,
+                    chat.isPrivateGroup(),
                     chat.getLastActivityTime()
             );
         }
@@ -239,5 +454,29 @@ public class ChatServiceImpl implements ChatService {
 
     private Locale currentLocale() {
         return LocaleContextHolder.getLocale();
+    }
+
+    private Chat getChatOrThrow(Long chatId) {
+
+        return chatRepository.findById(chatId)
+                .orElseThrow(() -> new ChatNotFoundException("Chat not found!"));
+    }
+
+    private void requireGroupChat(Chat chat, Locale locale) {
+
+        if (chat.getChatType() != ChatType.GROUP) {
+            throw new BadRequestException(messageSource.getMessage(
+                    "chat.notGroup", null,
+                    "Only group chats support participant management!", locale));
+        }
+    }
+
+    private void requireGroupOwnedByCurrentUser(Chat chat, Long currentUserId, Locale locale) {
+
+        requireGroupChat(chat, locale);
+
+        if (!chat.getOwnerId().equals(currentUserId)) {
+            throw new ForbiddenActionException("Only the group owner can manage participants!");
+        }
     }
 }
