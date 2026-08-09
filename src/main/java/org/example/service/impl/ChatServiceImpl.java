@@ -231,6 +231,40 @@ public class ChatServiceImpl implements ChatService {
 
     @Override
     @Transactional
+    public ChatResponseDto transferOwnership(Long chatId, Long newOwnerId) {
+
+        User currentUser = currentUserProvider.getAuthenticatedUser();
+        Locale locale = currentLocale();
+
+        Chat chat = getChatOrThrow(chatId);
+        requireGroupOwnedByCurrentUser(chat, currentUser.getId(), locale);
+
+        if (newOwnerId.equals(chat.getOwnerId())) {
+            throw new BadRequestException(messageSource.getMessage(
+                    "chat.transferTarget.alreadyOwner", null,
+                    "This user is already the owner!", locale));
+        }
+
+        boolean isMember = chat.getParticipants().stream()
+                .anyMatch(user -> user.getId().equals(newOwnerId));
+
+        if (!isMember) {
+            throw new BadRequestException(messageSource.getMessage(
+                    "chat.transferTarget.notMember", null,
+                    "Ownership can only be transferred to a current group member!", locale));
+        }
+
+        chat.setOwnerId(newOwnerId);
+        Chat savedChat = chatRepository.save(chat);
+
+        log.info("Group ownership transferred: chatId={}, oldOwnerId={}, newOwnerId={}",
+                chatId, currentUser.getId(), newOwnerId);
+
+        return chatMapper.toDto(savedChat, timeFormatter, locale);
+    }
+
+    @Override
+    @Transactional
     public String updateGroupAvatar(Long chatId, MultipartFile file) {
 
         User currentUser = currentUserProvider.getAuthenticatedUser();

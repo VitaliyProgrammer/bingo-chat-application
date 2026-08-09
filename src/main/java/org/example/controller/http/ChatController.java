@@ -70,6 +70,16 @@ public class ChatController {
         return chatService.removeParticipant(chatId, userId);
     }
 
+    @PostMapping("/{chatId}/transfer-ownership")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Transfer group ownership",
+            description = "Owner-only: transfers ownership of the group to another current member")
+    public ChatResponseDto transferOwnership(@PathVariable Long chatId,
+                                             @RequestParam Long newOwnerId) {
+
+        return chatService.transferOwnership(chatId, newOwnerId);
+    }
+
     @PostMapping(value = "/{chatId}/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.OK)
     @Operation(summary = "Upload/Update group avatar",

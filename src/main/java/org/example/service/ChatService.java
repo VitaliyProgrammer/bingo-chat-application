@@ -23,6 +23,8 @@ public interface ChatService {
 
     ChatResponseDto removeParticipant(Long chatId, Long userId);
 
+    ChatResponseDto transferOwnership(Long chatId, Long newOwnerId);
+
     void leaveGroupChat(Long chatId);
 
     String updateGroupAvatar(Long chatId, MultipartFile file);

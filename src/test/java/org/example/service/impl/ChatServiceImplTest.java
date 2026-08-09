@@ -300,6 +300,68 @@ class ChatServiceImplTest {
     }
 
     @Test
+    void transferOwnership_ownerToExistingMember_updatesOwner() {
+
+        Chat chat = groupChat(CHAT_ID, CURRENT_USER_ID, currentUser, user(2L), user(3L));
+        when(chatRepository.findById(CHAT_ID)).thenReturn(Optional.of(chat));
+        when(chatRepository.save(any(Chat.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        chatService.transferOwnership(CHAT_ID, 2L);
+
+        ArgumentCaptor<Chat> captor = ArgumentCaptor.forClass(Chat.class);
+        verify(chatRepository).save(captor.capture());
+
+        Chat savedChat = captor.getValue();
+        assertThat(savedChat.getOwnerId()).isEqualTo(2L);
+        assertThat(savedChat.getParticipants())
+                .extracting(User::getId)
+                .containsExactlyInAnyOrder(1L, 2L, 3L);
+    }
+
+    @Test
+    void transferOwnership_calledByNonOwner_throwsForbidden() {
+
+        // Owner is 2L, not the current user (1L) - just a regular member.
+        Chat chat = groupChat(CHAT_ID, 2L, user(2L), currentUser, user(3L));
+        when(chatRepository.findById(CHAT_ID)).thenReturn(Optional.of(chat));
+
+        assertThatThrownBy(() -> chatService.transferOwnership(CHAT_ID, 3L))
+                .isInstanceOf(ForbiddenActionException.class);
+
+        verify(chatRepository, never()).save(any());
+    }
+
+    @Test
+    void transferOwnership_targetNotMember_throwsBadRequest() {
+
+        Chat chat = groupChat(CHAT_ID, CURRENT_USER_ID, currentUser, user(2L));
+        when(chatRepository.findById(CHAT_ID)).thenReturn(Optional.of(chat));
+        when(messageSource.getMessage(
+                eq("chat.transferTarget.notMember"), isNull(), anyString(), any(Locale.class)))
+                .thenReturn("Ownership can only be transferred to a current group member!");
+
+        assertThatThrownBy(() -> chatService.transferOwnership(CHAT_ID, 999L))
+                .isInstanceOf(BadRequestException.class);
+
+        verify(chatRepository, never()).save(any());
+    }
+
+    @Test
+    void transferOwnership_targetAlreadyOwner_throwsBadRequest() {
+
+        Chat chat = groupChat(CHAT_ID, CURRENT_USER_ID, currentUser, user(2L));
+        when(chatRepository.findById(CHAT_ID)).thenReturn(Optional.of(chat));
+        when(messageSource.getMessage(
+                eq("chat.transferTarget.alreadyOwner"), isNull(), anyString(), any(Locale.class)))
+                .thenReturn("This user is already the owner!");
+
+        assertThatThrownBy(() -> chatService.transferOwnership(CHAT_ID, CURRENT_USER_ID))
+                .isInstanceOf(BadRequestException.class);
+
+        verify(chatRepository, never()).save(any());
+    }
+
+    @Test
     void updateGroupAvatar_owner_savesFileAndUpdatesChat() {
 
         Chat chat = groupChat(CHAT_ID, CURRENT_USER_ID, currentUser, user(2L));

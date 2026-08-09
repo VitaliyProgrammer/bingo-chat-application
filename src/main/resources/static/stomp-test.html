@@ -259,6 +259,8 @@
             <button class="success" style="width: 100%; margin-top: 5px;" onclick="addParticipants()">Add Participants</button>
             <input id="removeParticipantId" placeholder="User ID to remove" style="margin-top: 5px;">
             <button class="danger" style="width: 100%; margin-top: 5px;" onclick="removeParticipant()">Remove Participant</button>
+            <input id="newOwnerId" placeholder="New Owner ID" style="margin-top: 5px;">
+            <button class="success" style="width: 100%; margin-top: 5px;" onclick="transferOwnership()">Transfer Ownership</button>
             <button class="danger" style="width: 100%; margin-top: 5px;" onclick="leaveGroupChat()">Leave Group</button>
         </div>
         <div style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
@@ -733,6 +735,16 @@
         }
 
         apiFetch(`/chats/${chatId}/participants/${userId}`, { method: 'DELETE' });
+    }
+    function transferOwnership() {
+        const chatId = document.getElementById('groupChatId').value;
+        const newOwnerId = document.getElementById('newOwnerId').value;
+
+        if (!chatId || !newOwnerId) {
+            return alert("Встав Group Chat ID і New Owner ID!");
+        }
+
+        apiFetch(`/chats/${chatId}/transfer-ownership?newOwnerId=${newOwnerId}`, { method: 'POST' });
     }
     function leaveGroupChat() {
         const chatId = document.getElementById('groupChatId').value;
