@@ -1,5 +1,12 @@
 package org.example.service.impl;
 
+import java.security.Principal;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.configuration.metrics.service.ApplicationMetricsService;
@@ -18,7 +25,13 @@ import org.example.entity.MessageReaction;
 import org.example.entity.User;
 import org.example.entity.status.MessageStatus;
 import org.example.entity.type.ChatType;
-import org.example.event.*;
+import org.example.event.MessageDeliveredEvent;
+import org.example.event.MessageEditedEvent;
+import org.example.event.MessagePinnedEvent;
+import org.example.event.MessageReactedEvent;
+import org.example.event.MessageReadEvent;
+import org.example.event.MessageRemindedEvent;
+import org.example.event.MessageSentEvent;
 import org.example.exception.BadRequestException;
 import org.example.exception.ChatNotFoundException;
 import org.example.exception.ForbiddenActionException;
@@ -40,18 +53,17 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.security.Principal;
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class MessageServiceImpl implements MessageService {
+
+    // GROUP chats only: any emoji is a valid reaction TYPE, but a single message can
+    // only ever accumulate this many DISTINCT types (mirrors Telegram's reaction bar
+    // under high-view posts) - past the cap, new reactors must join an existing type
+    // rather than opening a new slot. Private/self chats have at most a couple of
+    // participants, so this scale problem can't occur there and stay unrestricted.
+    private static final int MAX_GROUP_REACTION_TYPES = 8;
 
     private final MessageRepository messageRepository;
 
@@ -74,13 +86,6 @@ public class MessageServiceImpl implements MessageService {
     private final MessageReactionRepository messageReactionRepository;
 
     private final MessageSource messageSource;
-
-    // GROUP chats only: any emoji is a valid reaction TYPE, but a single message can
-    // only ever accumulate this many DISTINCT types (mirrors Telegram's reaction bar
-    // under high-view posts) - past the cap, new reactors must join an existing type
-    // rather than opening a new slot. Private/self chats have at most a couple of
-    // participants, so this scale problem can't occur there and stay unrestricted.
-    private static final int MAX_GROUP_REACTION_TYPES = 8;
 
     @Override
     @Transactional
@@ -291,7 +296,8 @@ public class MessageServiceImpl implements MessageService {
 
         // Everyone in chat should be able to pin? Or only sender?
         // Usually, in group chats any participant can pin, but here we have private chats.
-        validateUserInChat(message.getChat().getId(), currentUserProvider.getAuthenticatedUser().getId());
+        Long currentUserId = currentUserProvider.getAuthenticatedUser().getId();
+        validateUserInChat(message.getChat().getId(), currentUserId);
 
         message.setIsPinned(true);
 
@@ -393,7 +399,8 @@ public class MessageServiceImpl implements MessageService {
                 .collect(Collectors.groupingBy(
                         MessageReaction::getEmoji,
                         LinkedHashMap::new,
-                        Collectors.mapping(reaction -> reaction.getUser().getId(), Collectors.toList())
+                        Collectors.mapping(reaction -> reaction.getUser().getId(),
+                                Collectors.toList())
                 ));
 
         return userIdsByEmoji.entrySet().stream()
@@ -476,7 +483,8 @@ public class MessageServiceImpl implements MessageService {
 
     private void validateGroupReactionSlot(Long messageId, Long currentUserId, String emoji) {
 
-        List<MessageReaction> existingReactions = messageReactionRepository.findByMessageId(messageId);
+        List<MessageReaction> existingReactions =
+                messageReactionRepository.findByMessageId(messageId);
 
         boolean emojiAlreadyUsedOnMessage = existingReactions.stream()
                 .anyMatch(reaction -> reaction.getEmoji().equals(emoji));
@@ -497,7 +505,8 @@ public class MessageServiceImpl implements MessageService {
         if (distinctTypesFromOthers >= MAX_GROUP_REACTION_TYPES) {
             throw new BadRequestException(messageSource.getMessage(
                     "reaction.limit.exceeded", null,
-                    "Reaction limit for this message reached - join one of the existing reactions!",
+                    "Reaction limit for this message reached - join one of the "
+                            + "existing reactions!",
                     LocaleContextHolder.getLocale()));
         }
     }

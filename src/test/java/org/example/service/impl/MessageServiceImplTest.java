@@ -1,11 +1,10 @@
 package org.example.service.impl;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -20,7 +19,10 @@ import org.example.entity.Message;
 import org.example.entity.MessageReaction;
 import org.example.entity.User;
 import org.example.entity.type.ChatType;
+import org.example.configuration.outbox.factory.OutBoxEventFactory;
+import org.example.configuration.outbox.repository.OutBoxEventRepository;
 import org.example.exception.BadRequestException;
+import org.example.mapper.MessageMapper;
 import org.example.repository.ChatRepository;
 import org.example.repository.MessageReactionRepository;
 import org.example.repository.MessageRepository;
@@ -62,6 +64,15 @@ class MessageServiceImplTest {
 
     @Mock
     private MessageSource messageSource;
+
+    @Mock
+    private MessageMapper messageMapper;
+
+    @Mock
+    private OutBoxEventRepository outBoxEventRepository;
+
+    @Mock
+    private OutBoxEventFactory outBoxEventFactory;
 
     @InjectMocks
     private MessageServiceImpl messageService;
@@ -162,8 +173,10 @@ class MessageServiceImplTest {
         messageService.addReaction(MESSAGE_ID, new ReactionRequestDto("👍"));
 
         // The cap only exists to protect GROUP chats from unbounded reaction sprawl -
-        // private chats have at most a couple of participants, so it never applies.
-        verify(messageReactionRepository, never()).findByMessageId(MESSAGE_ID);
+        // private chats have at most a couple of participants, so the lock (the
+        // group-only side effect) must never fire here. findByMessageId still gets
+        // called once, but from publishReactionEvent building the response - not
+        // from the (skipped) cap check.
         verify(messageRepository, never()).lockMessageForUpdate(MESSAGE_ID);
     }
 

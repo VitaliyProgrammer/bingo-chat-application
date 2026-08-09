@@ -5,8 +5,8 @@ import org.example.dto.response.MessagePageResponseDto;
 import org.example.dto.response.MessageResponseDto;
 import org.example.dto.response.ReactionSummaryDto;
 import org.example.entity.Message;
-import org.mapstruct.Mapping;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 import org.springframework.data.domain.Page;
 
 @Mapper(componentModel = "spring")

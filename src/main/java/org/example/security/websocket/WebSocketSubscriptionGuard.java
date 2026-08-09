@@ -100,7 +100,8 @@ public class WebSocketSubscriptionGuard implements ChannelInterceptor {
 
         String key = "websocket:subscribe:" + userId;
 
-        // Allow up to 10 subscriptions per second to prevent connection drops on multiple subscriptions
+        // Allow up to 10 subscriptions per second to prevent connection drops on
+        // multiple subscriptions
         long count = redisService.increment(key);
         if (count == 1) {
             redisService.expire(key, Duration.ofSeconds(1));

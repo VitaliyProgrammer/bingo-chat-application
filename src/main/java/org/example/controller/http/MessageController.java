@@ -11,7 +11,16 @@ import org.example.dto.response.MessagePageResponseDto;
 import org.example.dto.response.MessageResponseDto;
 import org.example.service.MessageService;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
 @RestController
@@ -22,14 +31,14 @@ public class MessageController {
 
     private final MessageService messageService;
 
-/*    @PostMapping("/send")
-    @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Send message",
-            description = "Send message to a chat")
-    public MessageResponseDto sendMessage(@Valid @RequestBody MessageRequestDto request) {
+    /*    @PostMapping("/send")
+        @ResponseStatus(HttpStatus.CREATED)
+        @Operation(summary = "Send message",
+                description = "Send message to a chat")
+        public MessageResponseDto sendMessage(@Valid @RequestBody MessageRequestDto request) {
 
-        return messageService.sendMessage(request);
-    }*/
+            return messageService.sendMessage(request);
+        }*/
 
     @PutMapping("/{id}")
     @ResponseStatus(HttpStatus.CREATED)

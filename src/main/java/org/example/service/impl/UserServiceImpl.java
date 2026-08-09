@@ -19,6 +19,8 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
+    private static final String AVATARS_DIR = "avatars";
+
     private final UserRepository userRepository;
 
     private final UserMapper userMapper;
@@ -28,8 +30,6 @@ public class UserServiceImpl implements UserService {
     private final FileService fileService;
     private final org.example.service.RedisService redisService;
     private final FeedbackRepository feedbackRepository;
-
-    private static final String AVATARS_DIR = "avatars";
 
     @Override
     public List<UserSearchResponseDto> searchByNickname(String nickname) {

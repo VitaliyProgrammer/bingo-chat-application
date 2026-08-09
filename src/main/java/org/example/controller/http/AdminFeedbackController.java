@@ -54,7 +54,8 @@ public class AdminFeedbackController {
     @Operation(summary = "Respond to feedback",
             description = "Updates the status of a feedback ticket and/or attaches an admin reply")
     public FeedbackResponseDto updateFeedback(@PathVariable Long id,
-                                              @Valid @RequestBody FeedbackUpdateRequestDto request) {
+                                              @Valid @RequestBody
+                                              FeedbackUpdateRequestDto request) {
 
         return feedbackService.updateFeedback(id, request);
     }
