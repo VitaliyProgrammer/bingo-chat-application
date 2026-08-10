@@ -4,7 +4,9 @@ import java.util.List;
 import org.example.dto.response.MessagePageResponseDto;
 import org.example.dto.response.MessageResponseDto;
 import org.example.dto.response.ReactionSummaryDto;
+import org.example.entity.Chat;
 import org.example.entity.Message;
+import org.example.entity.type.ChatType;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.springframework.data.domain.Page;
@@ -13,6 +15,7 @@ import org.springframework.data.domain.Page;
 public interface MessageMapper {
 
     @Mapping(source = "sender.id", target = "senderId")
+    @Mapping(target = "isSenderAdmin", expression = "java(isSenderAdmin(message))")
     @Mapping(source = "chat.id", target = "chatId")
     @Mapping(source = "replyTo.id", target = "replyToMessageId")
     @Mapping(target = "reactions", expression = "java(java.util.List.of())")
@@ -22,9 +25,17 @@ public interface MessageMapper {
 
         MessageResponseDto base = toDto(message);
 
-        return new MessageResponseDto(base.id(), base.senderId(), base.chatId(), base.content(),
-                base.status(), base.createdAt(), base.replyToMessageId(), base.isPinned(),
-                base.editedAt(), base.reminderAt(), reactions);
+        return new MessageResponseDto(base.id(), base.senderId(), base.isSenderAdmin(),
+                base.chatId(), base.content(), base.status(), base.createdAt(),
+                base.replyToMessageId(), base.isPinned(), base.editedAt(),
+                base.reminderAt(), reactions);
+    }
+
+    default boolean isSenderAdmin(Message message) {
+
+        Chat chat = message.getChat();
+        return chat.getChatType() == ChatType.GROUP
+                && message.getSender().getId().equals(chat.getOwnerId());
     }
 
     default MessagePageResponseDto toPageDto(Page<Message> page) {

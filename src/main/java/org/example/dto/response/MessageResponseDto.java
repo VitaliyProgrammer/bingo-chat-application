@@ -8,6 +8,7 @@ import org.example.entity.status.MessageStatus;
 public record MessageResponseDto(
         Long id,
         Long senderId,
+        Boolean isSenderAdmin,
         Long chatId,
         String content,
         MessageStatus status,
