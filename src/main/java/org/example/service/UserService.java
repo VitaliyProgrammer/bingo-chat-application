@@ -14,4 +14,10 @@ public interface UserService {
     String updateAvatar(MultipartFile file);
 
     void deleteAvatar();
+
+    void blockUser(Long userId);
+
+    void unblockUser(Long userId);
+
+    List<UserSearchResponseDto> getBlockedUsers();
 }

@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -58,5 +59,30 @@ public class UserController {
             description = "Remove the avatar image of the currently authenticated user.")
     public void deleteAvatar() {
         userService.deleteAvatar();
+    }
+
+    @PostMapping("/{userId}/block")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Block user",
+            description = "Blocks another user - messaging becomes unavailable in both "
+                    + "directions and no new private chat can be created between you two")
+    public void blockUser(@PathVariable Long userId) {
+        userService.blockUser(userId);
+    }
+
+    @DeleteMapping("/{userId}/block")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Unblock user",
+            description = "Removes a previously blocked user from your blacklist")
+    public void unblockUser(@PathVariable Long userId) {
+        userService.unblockUser(userId);
+    }
+
+    @GetMapping("/blocked")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Get blacklist",
+            description = "Returns the list of users you have blocked")
+    public List<UserSearchResponseDto> getBlockedUsers() {
+        return userService.getBlockedUsers();
     }
 }

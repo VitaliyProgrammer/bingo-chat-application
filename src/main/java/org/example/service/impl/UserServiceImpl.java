@@ -1,16 +1,23 @@
 package org.example.service.impl;
 
 import java.util.List;
+import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import org.example.dto.response.UserProfileResponseDto;
 import org.example.dto.response.UserSearchResponseDto;
+import org.example.entity.BlockedUser;
 import org.example.entity.User;
+import org.example.exception.BadRequestException;
+import org.example.exception.UserNotFoundException;
 import org.example.mapper.UserMapper;
+import org.example.repository.BlockedUserRepository;
 import org.example.repository.FeedbackRepository;
 import org.example.repository.UserRepository;
 import org.example.security.CurrentUserProvider;
 import org.example.service.FileService;
 import org.example.service.UserService;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -30,6 +37,8 @@ public class UserServiceImpl implements UserService {
     private final FileService fileService;
     private final org.example.service.RedisService redisService;
     private final FeedbackRepository feedbackRepository;
+    private final BlockedUserRepository blockedUserRepository;
+    private final MessageSource messageSource;
 
     @Override
     public List<UserSearchResponseDto> searchByNickname(String nickname) {
@@ -77,5 +86,59 @@ public class UserServiceImpl implements UserService {
             user.setAvatarUrl(null);
             userRepository.save(user);
         }
+    }
+
+    @Override
+    @Transactional
+    public void blockUser(Long userId) {
+
+        User currentUser = currentUserProvider.getAuthenticatedUser();
+        Locale locale = LocaleContextHolder.getLocale();
+
+        if (currentUser.getId().equals(userId)) {
+            throw new BadRequestException(messageSource.getMessage(
+                    "user.cannotBlockSelf", null,
+                    "You can't block yourself!", locale));
+        }
+
+        User targetUser = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found!"));
+
+        if (blockedUserRepository.existsByBlocker_IdAndBlocked_Id(currentUser.getId(), userId)) {
+            throw new BadRequestException(messageSource.getMessage(
+                    "user.alreadyBlocked", null,
+                    "This user is already blocked!", locale));
+        }
+
+        BlockedUser blockedUser = new BlockedUser();
+        blockedUser.setBlocker(currentUser);
+        blockedUser.setBlocked(targetUser);
+        blockedUserRepository.save(blockedUser);
+    }
+
+    @Override
+    @Transactional
+    public void unblockUser(Long userId) {
+
+        User currentUser = currentUserProvider.getAuthenticatedUser();
+        Locale locale = LocaleContextHolder.getLocale();
+
+        BlockedUser blockedUser = blockedUserRepository
+                .findByBlocker_IdAndBlocked_Id(currentUser.getId(), userId)
+                .orElseThrow(() -> new BadRequestException(messageSource.getMessage(
+                        "user.notBlocked", null,
+                        "This user is not in your blacklist!", locale)));
+
+        blockedUserRepository.delete(blockedUser);
+    }
+
+    @Override
+    public List<UserSearchResponseDto> getBlockedUsers() {
+
+        User currentUser = currentUserProvider.getAuthenticatedUser();
+
+        return blockedUserRepository.findAllByBlockerId(currentUser.getId()).stream()
+                .map(blockedUser -> userMapper.toSearchDto(blockedUser.getBlocked()))
+                .toList();
     }
 }
