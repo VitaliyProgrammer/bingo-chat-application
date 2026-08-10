@@ -1,0 +1,12 @@
+databaseChangeLog:
+  - changeSet:
+      id: add-blocked-groups-unblock-reason
+      author: vitaliy
+      changes:
+
+        - addColumn:
+            tableName: blocked_groups
+            columns:
+              - column:
+                  name: unblock_reason
+                  type: VARCHAR(500)

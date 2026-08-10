@@ -5,6 +5,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +38,8 @@ import org.example.exception.ChatNotFoundException;
 import org.example.exception.ForbiddenActionException;
 import org.example.exception.MessageNotFoundException;
 import org.example.mapper.MessageMapper;
+import org.example.repository.BlockedGroupRepository;
+import org.example.repository.BlockedUserRepository;
 import org.example.repository.ChatRepository;
 import org.example.repository.MessageReactionRepository;
 import org.example.repository.MessageRepository;
@@ -86,6 +89,10 @@ public class MessageServiceImpl implements MessageService {
     private final MessageReactionRepository messageReactionRepository;
 
     private final MessageSource messageSource;
+
+    private final BlockedUserRepository blockedUserRepository;
+
+    private final BlockedGroupRepository blockedGroupRepository;
 
     @Override
     @Transactional
@@ -294,8 +301,6 @@ public class MessageServiceImpl implements MessageService {
 
         Message message = getMessageOrThrow(messageId);
 
-        // Everyone in chat should be able to pin? Or only sender?
-        // Usually, in group chats any participant can pin, but here we have private chats.
         Long currentUserId = currentUserProvider.getAuthenticatedUser().getId();
         validateUserInChat(message.getChat().getId(), currentUserId);
 
@@ -413,13 +418,13 @@ public class MessageServiceImpl implements MessageService {
 
         validateUserInChat(request.chatId(), senderUser.getId());
 
-        // Step 1: Lock chat row FIRST (blocks other concurrent requests)
         chatRepository.lockChatForUpdate(request.chatId());
 
         Chat chat = chatRepository.findById(request.chatId())
                 .orElseThrow(() -> new ChatNotFoundException("Chat not found!"));
 
-        // Step 2: Generate sequence atomically WITHIN locked transaction
+        validateChatSendable(chat, senderUser);
+
         Long sequence = chatRepository.getNextMessageSequence(chat.getId());
         chat.setLastMessageSequence(sequence);
 
@@ -478,6 +483,33 @@ public class MessageServiceImpl implements MessageService {
 
         if (!chatRepository.existsByIdAndParticipants_Id(chatId, userId)) {
             throw new ForbiddenActionException("You are not a participant of this chat!");
+        }
+    }
+
+    private void validateChatSendable(Chat chat, User sender) {
+
+        Locale locale = LocaleContextHolder.getLocale();
+
+        if (blockedGroupRepository.existsByChat_IdAndUnblockedAtIsNull(chat.getId())) {
+            throw new ForbiddenActionException(messageSource.getMessage(
+                    "chat.blockedBySupport", null,
+                    "This group has been blocked by support and can't be modified!", locale));
+        }
+
+        if (chat.getChatType() == ChatType.PRIVATE) {
+            Long otherUserId = chat.getParticipants().stream()
+                    .map(User::getId)
+                    .filter(id -> !id.equals(sender.getId()))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalStateException(
+                            "Private chat is missing the other participant!"));
+
+            if (blockedUserRepository.existsBlockBetween(sender.getId(), otherUserId)) {
+                throw new ForbiddenActionException(messageSource.getMessage(
+                        "user.chatBlocked", null,
+                        "You can't message this user - one of you has blocked the other!",
+                        locale));
+            }
         }
     }
 

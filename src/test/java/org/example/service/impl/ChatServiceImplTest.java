@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -16,6 +17,7 @@ import java.util.Optional;
 import java.util.Set;
 import org.example.dto.request.AddParticipantsRequestDto;
 import org.example.dto.request.GroupChatRequestDto;
+import org.example.entity.BlockedGroup;
 import org.example.entity.Chat;
 import org.example.entity.User;
 import org.example.entity.type.ChatType;
@@ -23,6 +25,8 @@ import org.example.exception.BadRequestException;
 import org.example.exception.ForbiddenActionException;
 import org.example.exception.UserNotFoundException;
 import org.example.mapper.ChatMapper;
+import org.example.repository.BlockedGroupRepository;
+import org.example.repository.BlockedUserRepository;
 import org.example.repository.ChatRepository;
 import org.example.repository.UserRepository;
 import org.example.security.CurrentUserProvider;
@@ -68,6 +72,12 @@ class ChatServiceImplTest {
     @Mock
     private FileService fileService;
 
+    @Mock
+    private BlockedUserRepository blockedUserRepository;
+
+    @Mock
+    private BlockedGroupRepository blockedGroupRepository;
+
     @InjectMocks
     private ChatServiceImpl chatService;
 
@@ -76,7 +86,7 @@ class ChatServiceImplTest {
     @BeforeEach
     void setUp() {
         currentUser = user(CURRENT_USER_ID);
-        when(currentUserProvider.getAuthenticatedUser()).thenReturn(currentUser);
+        lenient().when(currentUserProvider.getAuthenticatedUser()).thenReturn(currentUser);
     }
 
     @Test
@@ -494,6 +504,127 @@ class ChatServiceImplTest {
         ArgumentCaptor<Chat> captor = ArgumentCaptor.forClass(Chat.class);
         verify(chatRepository).save(captor.capture());
         assertThat(captor.getValue().getParticipants()).isEmpty();
+    }
+
+    @Test
+    void blockGroupChat_success_savesReasonAndBlockedBy() {
+
+        Chat chat = groupChat(CHAT_ID, CURRENT_USER_ID, currentUser, user(2L));
+        when(chatRepository.findById(CHAT_ID)).thenReturn(Optional.of(chat));
+        when(blockedGroupRepository.existsByChat_IdAndUnblockedAtIsNull(CHAT_ID)).thenReturn(false);
+        when(blockedGroupRepository.save(any(BlockedGroup.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        chatService.blockGroupChat(CHAT_ID, "Spam");
+
+        ArgumentCaptor<BlockedGroup> captor = ArgumentCaptor.forClass(BlockedGroup.class);
+        verify(blockedGroupRepository).save(captor.capture());
+        assertThat(captor.getValue().getChat()).isEqualTo(chat);
+        assertThat(captor.getValue().getBlockedBy()).isEqualTo(currentUser);
+        assertThat(captor.getValue().getReason()).isEqualTo("Spam");
+    }
+
+    @Test
+    void blockGroupChat_alreadyBlocked_throwsBadRequest() {
+
+        Chat chat = groupChat(CHAT_ID, CURRENT_USER_ID, currentUser, user(2L));
+        when(chatRepository.findById(CHAT_ID)).thenReturn(Optional.of(chat));
+        when(blockedGroupRepository.existsByChat_IdAndUnblockedAtIsNull(CHAT_ID)).thenReturn(true);
+        when(messageSource.getMessage(eq("chat.alreadyBlocked"), isNull(), anyString(), any(Locale.class)))
+                .thenReturn("This group is already blocked!");
+
+        assertThatThrownBy(() -> chatService.blockGroupChat(CHAT_ID, "Spam"))
+                .isInstanceOf(BadRequestException.class);
+
+        verify(blockedGroupRepository, never()).save(any());
+    }
+
+    @Test
+    void unblockGroupChat_success_fillsUnblockedFields() {
+
+        Chat chat = groupChat(CHAT_ID, CURRENT_USER_ID, currentUser, user(2L));
+        BlockedGroup blockedGroup = new BlockedGroup();
+        blockedGroup.setChat(chat);
+        blockedGroup.setBlockedBy(user(2L));
+        blockedGroup.setReason("Spam");
+
+        when(chatRepository.findById(CHAT_ID)).thenReturn(Optional.of(chat));
+        when(blockedGroupRepository.findByChat_IdAndUnblockedAtIsNull(CHAT_ID))
+                .thenReturn(Optional.of(blockedGroup));
+        when(blockedGroupRepository.save(any(BlockedGroup.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        chatService.unblockGroupChat(CHAT_ID, "Resolved");
+
+        ArgumentCaptor<BlockedGroup> captor = ArgumentCaptor.forClass(BlockedGroup.class);
+        verify(blockedGroupRepository).save(captor.capture());
+        assertThat(captor.getValue().getUnblockedBy()).isEqualTo(currentUser);
+        assertThat(captor.getValue().getUnblockedAt()).isNotNull();
+        assertThat(captor.getValue().getUnblockReason()).isEqualTo("Resolved");
+    }
+
+    @Test
+    void unblockGroupChat_notBlocked_throwsBadRequest() {
+
+        Chat chat = groupChat(CHAT_ID, CURRENT_USER_ID, currentUser, user(2L));
+        when(chatRepository.findById(CHAT_ID)).thenReturn(Optional.of(chat));
+        when(blockedGroupRepository.findByChat_IdAndUnblockedAtIsNull(CHAT_ID))
+                .thenReturn(Optional.empty());
+        when(messageSource.getMessage(eq("chat.notBlocked"), isNull(), anyString(), any(Locale.class)))
+                .thenReturn("This group is not blocked!");
+
+        assertThatThrownBy(() -> chatService.unblockGroupChat(CHAT_ID, "Resolved"))
+                .isInstanceOf(BadRequestException.class);
+
+        verify(blockedGroupRepository, never()).save(any());
+    }
+
+    @Test
+    void addParticipants_blockedGroup_throwsForbidden() {
+
+        Chat chat = groupChat(CHAT_ID, CURRENT_USER_ID, currentUser, user(2L));
+        when(chatRepository.findById(CHAT_ID)).thenReturn(Optional.of(chat));
+        when(blockedGroupRepository.existsByChat_IdAndUnblockedAtIsNull(CHAT_ID)).thenReturn(true);
+        when(messageSource.getMessage(
+                eq("chat.blockedBySupport"), isNull(), anyString(), any(Locale.class)))
+                .thenReturn("This group has been blocked by support and can't be modified!");
+
+        assertThatThrownBy(() ->
+                chatService.addParticipants(CHAT_ID, new AddParticipantsRequestDto(Set.of(4L))))
+                .isInstanceOf(ForbiddenActionException.class);
+
+        verify(chatRepository, never()).save(any());
+    }
+
+    @Test
+    void leaveGroupChat_blockedGroup_throwsForbidden() {
+
+        Chat chat = groupChat(CHAT_ID, 2L, user(2L), currentUser, user(3L));
+        when(chatRepository.findById(CHAT_ID)).thenReturn(Optional.of(chat));
+        when(blockedGroupRepository.existsByChat_IdAndUnblockedAtIsNull(CHAT_ID)).thenReturn(true);
+        when(messageSource.getMessage(
+                eq("chat.blockedBySupport"), isNull(), anyString(), any(Locale.class)))
+                .thenReturn("This group has been blocked by support and can't be modified!");
+
+        assertThatThrownBy(() -> chatService.leaveGroupChat(CHAT_ID))
+                .isInstanceOf(ForbiddenActionException.class);
+
+        verify(chatRepository, never()).save(any());
+    }
+
+    @Test
+    void createPrivateChat_blockedPair_throwsBadRequest() {
+
+        when(chatRepository.findPrivateChatBetweenUsers(CURRENT_USER_ID, 2L))
+                .thenReturn(Optional.empty());
+        when(blockedUserRepository.existsBlockBetween(CURRENT_USER_ID, 2L)).thenReturn(true);
+        when(messageSource.getMessage(eq("user.chatBlocked"), isNull(), anyString(), any(Locale.class)))
+                .thenReturn("You can't message this user - one of you has blocked the other!");
+
+        assertThatThrownBy(() -> chatService.createPrivateChat(2L))
+                .isInstanceOf(BadRequestException.class);
+
+        verify(chatRepository, never()).save(any());
     }
 
     private User user(Long id) {

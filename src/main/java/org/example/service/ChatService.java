@@ -30,4 +30,8 @@ public interface ChatService {
     String updateGroupAvatar(Long chatId, MultipartFile file);
 
     void deleteGroupAvatar(Long chatId);
+
+    void blockGroupChat(Long chatId, String reason);
+
+    void unblockGroupChat(Long chatId, String reason);
 }

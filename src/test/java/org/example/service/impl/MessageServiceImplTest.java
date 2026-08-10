@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -13,6 +14,7 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import org.example.dto.request.MessageRequestDto;
 import org.example.dto.request.ReactionRequestDto;
 import org.example.entity.Chat;
 import org.example.entity.Message;
@@ -22,7 +24,10 @@ import org.example.entity.type.ChatType;
 import org.example.configuration.outbox.factory.OutBoxEventFactory;
 import org.example.configuration.outbox.repository.OutBoxEventRepository;
 import org.example.exception.BadRequestException;
+import org.example.exception.ForbiddenActionException;
 import org.example.mapper.MessageMapper;
+import org.example.repository.BlockedGroupRepository;
+import org.example.repository.BlockedUserRepository;
 import org.example.repository.ChatRepository;
 import org.example.repository.MessageReactionRepository;
 import org.example.repository.MessageRepository;
@@ -74,6 +79,12 @@ class MessageServiceImplTest {
     @Mock
     private OutBoxEventFactory outBoxEventFactory;
 
+    @Mock
+    private BlockedUserRepository blockedUserRepository;
+
+    @Mock
+    private BlockedGroupRepository blockedGroupRepository;
+
     @InjectMocks
     private MessageServiceImpl messageService;
 
@@ -88,7 +99,7 @@ class MessageServiceImplTest {
         message = message(MESSAGE_ID, groupChat);
 
         when(currentUserProvider.getAuthenticatedUser()).thenReturn(currentUser);
-        when(messageRepository.findById(MESSAGE_ID)).thenReturn(Optional.of(message));
+        lenient().when(messageRepository.findById(MESSAGE_ID)).thenReturn(Optional.of(message));
         when(chatRepository.existsByIdAndParticipants_Id(CHAT_ID, CURRENT_USER_ID)).thenReturn(true);
     }
 
@@ -178,6 +189,45 @@ class MessageServiceImplTest {
         // called once, but from publishReactionEvent building the response - not
         // from the (skipped) cap check.
         verify(messageRepository, never()).lockMessageForUpdate(MESSAGE_ID);
+    }
+
+    @Test
+    void sendMessage_blockedGroup_throwsForbidden() {
+
+        when(chatRepository.findById(CHAT_ID)).thenReturn(Optional.of(groupChat));
+        when(blockedGroupRepository.existsByChat_IdAndUnblockedAtIsNull(CHAT_ID)).thenReturn(true);
+        when(messageSource.getMessage(
+                eq("chat.blockedBySupport"), isNull(), anyString(), any(Locale.class)))
+                .thenReturn("This group has been blocked by support and can't be modified!");
+
+        MessageRequestDto request = new MessageRequestDto(CHAT_ID, "Hello", null);
+
+        assertThatThrownBy(() -> messageService.sendMessage(request))
+                .isInstanceOf(ForbiddenActionException.class);
+
+        verify(messageRepository, never()).save(any());
+    }
+
+    @Test
+    void sendMessage_privateChatBlockedPair_throwsForbidden() {
+
+        Chat privateChat = chat(CHAT_ID, ChatType.PRIVATE);
+        User otherUser = user(2L);
+        privateChat.getParticipants().add(currentUser);
+        privateChat.getParticipants().add(otherUser);
+
+        when(chatRepository.findById(CHAT_ID)).thenReturn(Optional.of(privateChat));
+        when(blockedUserRepository.existsBlockBetween(CURRENT_USER_ID, 2L)).thenReturn(true);
+        when(messageSource.getMessage(
+                eq("user.chatBlocked"), isNull(), anyString(), any(Locale.class)))
+                .thenReturn("You can't message this user - one of you has blocked the other!");
+
+        MessageRequestDto request = new MessageRequestDto(CHAT_ID, "Hello", null);
+
+        assertThatThrownBy(() -> messageService.sendMessage(request))
+                .isInstanceOf(ForbiddenActionException.class);
+
+        verify(messageRepository, never()).save(any());
     }
 
     private List<MessageReaction> reactionsFromOtherUsers(int distinctTypesCount) {

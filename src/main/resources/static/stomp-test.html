@@ -188,7 +188,6 @@
 <div class="sidebar">
     <h2>Control Panel</h2>
 
-    <!-- AUTH -->
     <div class="section">
         <h3>REGISTRATION</h3>
         <input id="regEmail" placeholder="Email" value="user1@example.com">
@@ -207,7 +206,6 @@
         <div id="tokenDisplay" class="token-info">No token</div>
     </div>
 
-    <!-- USERS -->
     <div class="section">
         <h3>USERS & AVATAR</h3>
         <div id="avatarContainer" style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
@@ -232,7 +230,16 @@
         </div>
     </div>
 
-    <!-- CHATS -->
+    <div class="section">
+        <h3>BLACKLIST</h3>
+        <input id="blacklistUserId" placeholder="User ID">
+        <div class="grid-buttons">
+            <button class="danger" onclick="blockUser()">Block User</button>
+            <button class="secondary" onclick="unblockUser()">Unblock User</button>
+        </div>
+        <button class="secondary" style="width: 100%; margin-top: 5px;" onclick="getBlacklist()">Get Blacklist</button>
+    </div>
+
     <div class="section">
         <h3>CHATS</h3>
         <input id="targetUserId" placeholder="User ID">
@@ -274,7 +281,6 @@
         </div>
     </div>
 
-    <!-- WEBSOCKET -->
     <div class="section">
         <h3>WEBSOCKET</h3>
         <div>
@@ -289,7 +295,6 @@
         <button style="width:100%" onclick="subscribe()">Subscribe</button>
     </div>
 
-    <!-- PRESENCE -->
     <div class="section">
         <h3>PRESENCE (Testing)</h3>
         <div class="grid-buttons">
@@ -298,7 +303,6 @@
         </div>
     </div>
 
-    <!-- FEEDBACK -->
     <div class="section">
         <h3>FEEDBACK</h3>
         <input id="feedbackEmail" placeholder="Your email" value="user1@example.com">
@@ -312,7 +316,6 @@
         <button class="secondary" style="width:100%; margin-top:5px;" onclick="getMyFeedback()">My Feedback History</button>
     </div>
 
-    <!-- ADMIN FEEDBACK -->
     <div class="section">
         <h3>ADMIN - FEEDBACK</h3>
         <div class="grid-buttons">
@@ -335,11 +338,20 @@
             <button class="success" style="width:100%" onclick="respondFeedbackAdmin()">Respond (Admin)</button>
         </div>
     </div>
+
+    <div class="section">
+        <h3>ADMIN - CHAT MODERATION</h3>
+        <input id="adminModChatId" placeholder="Chat ID">
+        <input id="adminModReason" placeholder="Reason (required for both actions)">
+        <div class="grid-buttons">
+            <button class="danger" onclick="blockGroupChatAdmin()">Block Group</button>
+            <button class="success" onclick="unblockGroupChatAdmin()">Unblock Group</button>
+        </div>
+    </div>
 </div>
 
 <div class="main-content">
     <div style="display: flex; gap: 15px; flex: 1; min-height: 0;">
-        <!-- MESSAGES -->
         <div class="section" style="flex: 1; display: flex; flex-direction: column;">
             <h3>MESSAGES & NOTES</h3>
             <div style="display: grid; grid-template-columns: 100px 1fr auto auto; gap: 5px; position: relative;">
@@ -384,7 +396,6 @@
             </div>
         </div>
 
-        <!-- LOGS -->
         <div class="log-container" style="flex: 1.5;">
             <div style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
                 <div class="log-header">
@@ -409,7 +420,6 @@
     let jwtToken = localStorage.getItem('jwt_token') || "";
     const API_BASE = "http://localhost:8080";
 
-    // Initialize UI
     if (jwtToken) {
         const tokenDisplay = document.getElementById('tokenDisplay');
         if (tokenDisplay) {
@@ -417,7 +427,6 @@
         }
     }
 
-    // --- UTILS ---
     function syntaxHighlight(json) {
         if (typeof json !== 'string') {
             json = JSON.stringify(json, undefined, 2);
@@ -466,14 +475,15 @@
         logEntry("restLog", method, url, status, data, isError);
     }
 
-    function logWs(msg, data = null) {
+    function logWs(msg, data = null, isError = false) {
         const box = document.getElementById("wsLog");
         const time = new Date().toLocaleTimeString();
 
         const entry = document.createElement('div');
         entry.className = 'log-entry';
 
-        let html = `<span class="log-time">[${time}]</span> <span style="color: #da70d6; font-weight: bold;">${msg}</span>`;
+        const color = isError ? 'var(--error-color)' : '#da70d6';
+        let html = `<span class="log-time">[${time}]</span> <span style="color: ${color}; font-weight: bold;">${msg}</span>`;
         if (data) {
             html += `<pre style="margin: 10px 0 0 0;">${syntaxHighlight(data)}</pre>`;
         }
@@ -481,6 +491,14 @@
         entry.innerHTML = html;
         if (window.twemoji) twemoji.parse(entry);
         box.insertBefore(entry, box.firstChild);
+    }
+
+    function formatStompError(err) {
+        if (err && err.headers && err.headers.message) {
+            return err.headers.message + (err.body ? ` - ${err.body}` : '');
+        }
+        if (typeof err === 'string') return err;
+        return 'Connection lost or a STOMP ERROR frame was received (see browser console for the raw frame)';
     }
 
     function clearLog(id) {
@@ -519,7 +537,6 @@
         }
     }
 
-    // --- AUTH ---
     async function login() {
         console.log("Login button clicked");
         const loginEmail = document.getElementById('loginEmail');
@@ -545,7 +562,6 @@
             if (tokenDisplay) {
                 tokenDisplay.innerText = "Token: " + jwtToken.substring(0, 20) + "...";
             }
-            // Trigger profile update and connect automatically if needed
             await getProfile();
         } else {
             console.warn("Login failed or no token received", data);
@@ -568,11 +584,9 @@
     }
 
 
-    // --- USERS ---
     async function getProfile() {
         const profile = await apiFetch('/users/me');
         if (profile) {
-            // Update Avatar
             const avatarImg = document.getElementById('profileAvatar');
             if (profile.avatarUrl) {
                 avatarImg.src = API_BASE + '/uploads/' + profile.avatarUrl;
@@ -582,7 +596,6 @@
                 avatarImg.title = 'No avatar';
             }
 
-            // Update Profile Info
             const infoBox = document.getElementById('profileInfo');
             infoBox.style.display = 'block';
             
@@ -642,7 +655,22 @@
         getProfile();
     }
 
-    // --- CHATS ---
+    function blockUser() {
+        const userId = document.getElementById('blacklistUserId').value;
+        if (!userId) return alert("Встав User ID!");
+        apiFetch(`/users/${userId}/block`, { method: 'POST' });
+    }
+
+    function unblockUser() {
+        const userId = document.getElementById('blacklistUserId').value;
+        if (!userId) return alert("Встав User ID!");
+        apiFetch(`/users/${userId}/block`, { method: 'DELETE' });
+    }
+
+    function getBlacklist() {
+        apiFetch('/users/blocked');
+    }
+
     function createPrivateChat() {
         const userId = document.getElementById('targetUserId').value;
         apiFetch(`/chats/private?userId=${userId}`, { method: 'POST' });
@@ -766,7 +794,6 @@
     function getSelfChat() { apiFetch('/chats/self'); }
     function createSelfChat() { apiFetch('/notes/self', { method: 'POST' }); }
 
-    // --- WEBSOCKET ---
     let presenceHeartbeat = null;
 
     function connect() {
@@ -796,7 +823,7 @@
             (err) => {
                 document.getElementById('wsStatus').className = "status-indicator status-offline";
                 document.getElementById('wsStatusText').innerText = "Disconnected";
-                logWs("STOMP Error", err);
+                logWs("STOMP ERROR: " + formatStompError(err), null, true);
                 clearInterval(presenceHeartbeat);
             }
         );
@@ -815,23 +842,25 @@
 
     function subscribe() {
         const chatId = document.getElementById('subChatId').value;
-        if (!stompClient) return alert("Connect first!");
+        if (!stompClient || !stompClient.connected) {
+            return alert("Not connected - the connection may have been dropped (e.g. by a 403). Click Connect and Subscribe again!");
+        }
 
         stompClient.subscribe(`/topic/chat/${chatId}`, (msg) => {
             logWs(`MSG from /topic/chat/${chatId}`, JSON.parse(msg.body));
         });
-        // Also subscribe to typing and presence if needed
         stompClient.subscribe(`/topic/chat/${chatId}/typing`, (msg) => {
             logWs(`TYPING in ${chatId}`, JSON.parse(msg.body));
         });
         logWs(`Subscribed to /topic/chat/${chatId}`);
     }
 
-    // --- MESSAGES ---
     function sendMessage() {
         const chatId = document.getElementById('msgChatId').value;
         const content = document.getElementById('msgContent').value;
-        if (!stompClient) return alert("Connect first!");
+        if (!stompClient || !stompClient.connected) {
+            return alert("Not connected - the connection may have been dropped (e.g. by a 403). Click Connect and Subscribe again!");
+        }
 
         stompClient.send("/app/chat.send", {}, JSON.stringify({
             chatId: Number(chatId),
@@ -845,7 +874,9 @@
         const chatId = document.getElementById('msgChatId').value;
         const content = document.getElementById('msgContent').value;
         const replyId = document.getElementById('replyId').value;
-        if (!stompClient) return alert("Connect first!");
+        if (!stompClient || !stompClient.connected) {
+            return alert("Not connected - the connection may have been dropped (e.g. by a 403). Click Connect and Subscribe again!");
+        }
 
         stompClient.send("/app/chat.send", {}, JSON.stringify({
             chatId: Number(chatId),
@@ -882,7 +913,9 @@
 
     function sendAck() {
         const id = document.getElementById('msgId').value;
-        if (!stompClient) return alert("Connect first!");
+        if (!stompClient || !stompClient.connected) {
+            return alert("Not connected - the connection may have been dropped (e.g. by a 403). Click Connect and Subscribe again!");
+        }
         stompClient.send("/app/chat.ack", {}, JSON.stringify({ messageId: Number(id) }));
     }
 
@@ -891,7 +924,6 @@
         apiFetch(`/messages/chat/${chatId}?page=0&size=20`);
     }
 
-    // --- EMOJI ---
     // The input loses focus the moment the picker button/element is clicked, and
     // browsers reset selectionStart/End to the end on refocus - so the cursor spot
     // has to be captured NOW, while focus is still on the textbox, or it's lost.
@@ -920,7 +952,6 @@
         contentInput.setSelectionRange(caretPos, caretPos);
     });
 
-    // --- REACTIONS ---
     const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
 
     QUICK_REACTIONS.forEach(emoji => {
@@ -957,7 +988,6 @@
         document.getElementById('reactionPicker').style.display = 'none';
     });
 
-    // --- NOTES ---
     function setReminder() {
         const id = document.getElementById('msgId').value;
         // datetime-local already gives "YYYY-MM-DDTHH:mm" in local wall-clock time,
@@ -975,15 +1005,18 @@
         apiFetch(`/notes/messages/${id}/pin`, { method: 'POST' });
     }
 
-    // --- PRESENCE ---
     function presencePing() {
-        if (!stompClient) return alert("Connect first!");
+        if (!stompClient || !stompClient.connected) {
+            return alert("Not connected - the connection may have been dropped (e.g. by a 403). Click Connect and Subscribe again!");
+        }
         stompClient.send("/app/presence.ping", {}, '');
         logWs("SENT /app/presence.ping");
     }
 
     function updateLastSeen() {
-        if (!stompClient) return alert("Connect first!");
+        if (!stompClient || !stompClient.connected) {
+            return alert("Not connected - the connection may have been dropped (e.g. by a 403). Click Connect and Subscribe again!");
+        }
         stompClient.send("/app/presence.lastSeen", {}, '');
         logWs("SENT /app/presence.lastSeen");
     }
@@ -997,7 +1030,6 @@
         }
     });
 
-    // --- FEEDBACK ---
     function sendFeedback() {
         const email = document.getElementById('feedbackEmail').value;
         const type = document.getElementById('feedbackType').value;
@@ -1009,7 +1041,6 @@
         apiFetch('/feedback/my');
     }
 
-    // --- ADMIN FEEDBACK ---
     function getAllFeedbackAdmin() {
         const page = document.getElementById('feedbackAdminPage').value;
         const size = document.getElementById('feedbackAdminSize').value;
@@ -1018,6 +1049,26 @@
 
     function getFeedbackStatsAdmin() {
         apiFetch('/admin/feedback/stats');
+    }
+
+    function blockGroupChatAdmin() {
+        const chatId = document.getElementById('adminModChatId').value;
+        const reason = document.getElementById('adminModReason').value;
+        if (!chatId) return alert("Встав Chat ID!");
+        apiFetch(`/admin/chats/${chatId}/block`, {
+            method: 'POST',
+            body: JSON.stringify({ reason })
+        });
+    }
+
+    function unblockGroupChatAdmin() {
+        const chatId = document.getElementById('adminModChatId').value;
+        const reason = document.getElementById('adminModReason').value;
+        if (!chatId) return alert("Встав Chat ID!");
+        apiFetch(`/admin/chats/${chatId}/unblock`, {
+            method: 'POST',
+            body: JSON.stringify({ reason })
+        });
     }
 
     function respondFeedbackAdmin() {

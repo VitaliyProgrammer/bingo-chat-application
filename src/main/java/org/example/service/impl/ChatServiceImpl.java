@@ -13,6 +13,7 @@ import org.example.dto.request.AddParticipantsRequestDto;
 import org.example.dto.request.GroupChatRequestDto;
 import org.example.dto.response.ChatListItemResponseDto;
 import org.example.dto.response.ChatResponseDto;
+import org.example.entity.BlockedGroup;
 import org.example.entity.Chat;
 import org.example.entity.User;
 import org.example.entity.type.ChatType;
@@ -22,6 +23,8 @@ import org.example.exception.ForbiddenActionException;
 import org.example.exception.UserNotFoundException;
 import org.example.mapper.ChatListMapper;
 import org.example.mapper.ChatMapper;
+import org.example.repository.BlockedGroupRepository;
+import org.example.repository.BlockedUserRepository;
 import org.example.repository.ChatRepository;
 import org.example.repository.UserRepository;
 import org.example.security.CurrentUserProvider;
@@ -64,6 +67,10 @@ public class ChatServiceImpl implements ChatService {
 
     private final FileService fileService;
 
+    private final BlockedUserRepository blockedUserRepository;
+
+    private final BlockedGroupRepository blockedGroupRepository;
+
     @Override
     @Transactional
     public ChatResponseDto createPrivateChat(Long receiverId) {
@@ -90,6 +97,12 @@ public class ChatServiceImpl implements ChatService {
                     senderId, receiverId);
 
             return chatMapper.toDto(existingChat.get(), timeFormatter, locale);
+        }
+
+        if (blockedUserRepository.existsBlockBetween(senderId, receiverId)) {
+            throw new BadRequestException(messageSource.getMessage(
+                    "user.chatBlocked", null,
+                    "You can't message this user - one of you has blocked the other!", locale));
         }
 
         senderUser = userRepository.findById(senderId)
@@ -166,6 +179,7 @@ public class ChatServiceImpl implements ChatService {
         Locale locale = currentLocale();
 
         Chat chat = getChatOrThrow(chatId);
+        requireNotBlocked(chat, locale);
         requireGroupOwnedByCurrentUser(chat, currentUser.getId(), locale);
 
         Set<Long> newParticipantIds = request.participantIds();
@@ -204,6 +218,7 @@ public class ChatServiceImpl implements ChatService {
         Locale locale = currentLocale();
 
         Chat chat = getChatOrThrow(chatId);
+        requireNotBlocked(chat, locale);
         requireGroupOwnedByCurrentUser(chat, currentUser.getId(), locale);
 
         if (userId.equals(chat.getOwnerId())) {
@@ -237,6 +252,7 @@ public class ChatServiceImpl implements ChatService {
         Locale locale = currentLocale();
 
         Chat chat = getChatOrThrow(chatId);
+        requireNotBlocked(chat, locale);
         requireGroupOwnedByCurrentUser(chat, currentUser.getId(), locale);
 
         if (newOwnerId.equals(chat.getOwnerId())) {
@@ -271,6 +287,7 @@ public class ChatServiceImpl implements ChatService {
         Locale locale = currentLocale();
 
         Chat chat = getChatOrThrow(chatId);
+        requireNotBlocked(chat, locale);
         requireGroupOwnedByCurrentUser(chat, currentUser.getId(), locale);
 
         if (chat.getAvatarUrl() != null) {
@@ -294,6 +311,7 @@ public class ChatServiceImpl implements ChatService {
         Locale locale = currentLocale();
 
         Chat chat = getChatOrThrow(chatId);
+        requireNotBlocked(chat, locale);
         requireGroupOwnedByCurrentUser(chat, currentUser.getId(), locale);
 
         if (chat.getAvatarUrl() != null) {
@@ -307,6 +325,55 @@ public class ChatServiceImpl implements ChatService {
 
     @Override
     @Transactional
+    public void blockGroupChat(Long chatId, String reason) {
+
+        Locale locale = currentLocale();
+
+        Chat chat = getChatOrThrow(chatId);
+        requireGroupChat(chat, locale);
+
+        if (blockedGroupRepository.existsByChat_IdAndUnblockedAtIsNull(chatId)) {
+            throw new BadRequestException(messageSource.getMessage(
+                    "chat.alreadyBlocked", null,
+                    "This group is already blocked!", locale));
+        }
+
+        User currentUser = currentUserProvider.getAuthenticatedUser();
+        BlockedGroup blockedGroup = new BlockedGroup();
+        blockedGroup.setChat(chat);
+        blockedGroup.setBlockedBy(currentUser);
+        blockedGroup.setReason(reason);
+        blockedGroupRepository.save(blockedGroup);
+
+        log.info("Group chat blocked by support: chatId={}, byUserId={}",
+                chatId, currentUser.getId());
+    }
+
+    @Override
+    @Transactional
+    public void unblockGroupChat(Long chatId, String reason) {
+
+        User currentUser = currentUserProvider.getAuthenticatedUser();
+        Locale locale = currentLocale();
+
+        requireGroupChat(getChatOrThrow(chatId), locale);
+
+        BlockedGroup blockedGroup = blockedGroupRepository.findByChat_IdAndUnblockedAtIsNull(chatId)
+                .orElseThrow(() -> new BadRequestException(messageSource.getMessage(
+                        "chat.notBlocked", null,
+                        "This group is not blocked!", locale)));
+
+        blockedGroup.setUnblockedBy(currentUser);
+        blockedGroup.setUnblockedAt(LocalDateTime.now());
+        blockedGroup.setUnblockReason(reason);
+        blockedGroupRepository.save(blockedGroup);
+
+        log.info("Group chat unblocked by support: chatId={}, byUserId={}",
+                chatId, currentUser.getId());
+    }
+
+    @Override
+    @Transactional
     public void leaveGroupChat(Long chatId) {
 
         User currentUser = currentUserProvider.getAuthenticatedUser();
@@ -315,6 +382,7 @@ public class ChatServiceImpl implements ChatService {
 
         Chat chat = getChatOrThrow(chatId);
         requireGroupChat(chat, locale);
+        requireNotBlocked(chat, locale);
 
         if (currentUserId.equals(chat.getOwnerId()) && chat.getParticipants().size() > 1) {
             throw new BadRequestException(messageSource.getMessage(
@@ -511,6 +579,15 @@ public class ChatServiceImpl implements ChatService {
 
         if (!chat.getOwnerId().equals(currentUserId)) {
             throw new ForbiddenActionException("Only the group owner can manage participants!");
+        }
+    }
+
+    private void requireNotBlocked(Chat chat, Locale locale) {
+
+        if (blockedGroupRepository.existsByChat_IdAndUnblockedAtIsNull(chat.getId())) {
+            throw new ForbiddenActionException(messageSource.getMessage(
+                    "chat.blockedBySupport", null,
+                    "This group has been blocked by support and can't be modified!", locale));
         }
     }
 }

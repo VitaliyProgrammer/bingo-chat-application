@@ -31,3 +31,9 @@ databaseChangeLog:
       file: db/changelog/changes/015-support-group-chats.yaml
   - include:
       file: db/changelog/changes/016-group-privacy-and-avatar.yaml
+  - include:
+      file: db/changelog/changes/018-create-blocked-users-table.yaml
+  - include:
+      file: db/changelog/changes/020-create-blocked-groups-table.yaml
+  - include:
+      file: db/changelog/changes/021-add-blocked-groups-unblock-reason.yaml

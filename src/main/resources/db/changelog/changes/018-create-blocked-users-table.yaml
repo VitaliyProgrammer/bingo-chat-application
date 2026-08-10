@@ -1,0 +1,63 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-blocked-users-table
+      author: vitaliy
+      changes:
+
+        - createTable:
+            tableName: blocked_users
+            columns:
+
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+
+              - column:
+                  name: blocker_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: blocked_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: created_at
+                  type: DATETIME
+                  constraints:
+                    nullable: false
+
+        - addUniqueConstraint:
+            tableName: blocked_users
+            columnNames: blocker_id, blocked_id
+            constraintName: uk_blocked_users_blocker_blocked
+
+        - createIndex:
+            tableName: blocked_users
+            indexName: idx_blocked_users_blocker
+            columns:
+              - column:
+                  name: blocker_id
+
+        - addForeignKeyConstraint:
+            baseTableName: blocked_users
+            baseColumnNames: blocker_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_blocked_users_blocker
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            baseTableName: blocked_users
+            baseColumnNames: blocked_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_blocked_users_blocked
+            onDelete: CASCADE
