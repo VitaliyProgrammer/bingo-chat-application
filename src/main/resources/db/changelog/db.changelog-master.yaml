@@ -37,3 +37,5 @@ databaseChangeLog:
       file: db/changelog/changes/020-create-blocked-groups-table.yaml
   - include:
       file: db/changelog/changes/021-add-blocked-groups-unblock-reason.yaml
+  - include:
+      file: db/changelog/changes/022-create-push-subscriptions-table.yaml

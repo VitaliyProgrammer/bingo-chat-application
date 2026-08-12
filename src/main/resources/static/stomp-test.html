@@ -231,6 +231,15 @@
     </div>
 
     <div class="section">
+        <h3>PUSH NOTIFICATIONS</h3>
+        <div id="pushStatus" class="token-info">Push: disabled</div>
+        <div class="grid-buttons">
+            <button class="success" onclick="enablePush()">Enable Push</button>
+            <button class="danger" onclick="disablePush()">Disable Push</button>
+        </div>
+    </div>
+
+    <div class="section">
         <h3>BLACKLIST</h3>
         <input id="blacklistUserId" placeholder="User ID">
         <div class="grid-buttons">
@@ -418,6 +427,29 @@
 <script>
     let stompClient = null;
     let jwtToken = localStorage.getItem('jwt_token') || "";
+    let autoSubscribeChatId = null;
+
+    // Push notifications don't carry the JWT - clicking one just opens this page
+    // with #chat-<id>. If we're already logged in (token survives in localStorage),
+    // jump straight to that chat instead of leaving the user to hunt for it manually.
+    window.addEventListener('load', () => {
+        if (jwtToken) {
+            document.getElementById('tokenDisplay').innerText = "Token: " + jwtToken.substring(0, 20) + "...";
+            getProfile();
+        }
+
+        const chatMatch = location.hash.match(/^#chat-(\d+)$/);
+        if (chatMatch && jwtToken) {
+            const chatId = chatMatch[1];
+            document.getElementById('targetChatId').value = chatId;
+            document.getElementById('subChatId').value = chatId;
+            document.getElementById('msgChatId').value = chatId;
+            openChat();
+            getHistory();
+            autoSubscribeChatId = chatId;
+            connect();
+        }
+    });
     const API_BASE = "http://localhost:8080";
 
     if (jwtToken) {
@@ -655,6 +687,62 @@
         getProfile();
     }
 
+    function urlBase64ToUint8Array(base64String) {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+        const rawData = atob(base64);
+        return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
+    }
+
+    async function enablePush() {
+        const status = document.getElementById('pushStatus');
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+            return alert("This browser doesn't support Web Push!");
+        }
+        if (!jwtToken) return alert("Login first!");
+
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+            status.innerText = "Push: permission denied";
+            return;
+        }
+
+        const registration = await navigator.serviceWorker.register('/sw.js');
+        const publicKeyResponse = await fetch(API_BASE + '/push/public-key', {
+            headers: { 'Authorization': 'Bearer ' + jwtToken }
+        });
+        const publicKey = await publicKeyResponse.text();
+
+        const subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(publicKey)
+        });
+
+        await apiFetch('/push/subscribe', {
+            method: 'POST',
+            body: JSON.stringify(subscription.toJSON())
+        });
+
+        status.innerText = "Push: enabled";
+    }
+
+    async function disablePush() {
+        const status = document.getElementById('pushStatus');
+        if (!('serviceWorker' in navigator)) return;
+
+        const registration = await navigator.serviceWorker.getRegistration('/sw.js');
+        const subscription = registration && await registration.pushManager.getSubscription();
+
+        if (subscription) {
+            await apiFetch('/push/subscribe?endpoint=' + encodeURIComponent(subscription.endpoint), {
+                method: 'DELETE'
+            });
+            await subscription.unsubscribe();
+        }
+
+        status.innerText = "Push: disabled";
+    }
+
     function blockUser() {
         const userId = document.getElementById('blacklistUserId').value;
         if (!userId) return alert("Встав User ID!");
@@ -819,6 +907,12 @@
                 stompClient.subscribe('/user/queue/reminders', (msg) => {
                     logWs('REMINDER from /user/queue/reminders', JSON.parse(msg.body));
                 });
+
+                if (autoSubscribeChatId) {
+                    document.getElementById('subChatId').value = autoSubscribeChatId;
+                    subscribe();
+                    autoSubscribeChatId = null;
+                }
             },
             (err) => {
                 document.getElementById('wsStatus').className = "status-indicator status-offline";

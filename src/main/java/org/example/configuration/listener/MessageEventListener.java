@@ -12,6 +12,7 @@ import org.example.event.MessagePinnedEvent;
 import org.example.event.MessageReactedEvent;
 import org.example.event.MessageReadEvent;
 import org.example.event.MessageSentEvent;
+import org.example.service.PushNotificationService;
 import org.example.service.RedisService;
 import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -27,6 +28,7 @@ public class MessageEventListener {
 
     private final RedisService redisService;
     private final SimpMessagingTemplate messagingTemplate;
+    private final PushNotificationService pushNotificationService;
 
     @Async("eventExecutor")
     @EventListener
@@ -65,6 +67,8 @@ public class MessageEventListener {
                         "/queue/unread",
                         new UnreadMessagesResponseDto(message.chatId(), unreadMessages)
                 );
+
+                pushNotificationService.sendToUser(userId, message);
             }
         });
     }

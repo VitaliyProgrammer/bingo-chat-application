@@ -40,6 +40,7 @@ public class SecurityAccessConfiguration {
                                                 "/websocket/**",
                                                 "/websocket",
                                                 "/stomp-test.html",
+                                                "/sw.js",
                                                 "/uploads/**"
                                         )
                                         .permitAll()
