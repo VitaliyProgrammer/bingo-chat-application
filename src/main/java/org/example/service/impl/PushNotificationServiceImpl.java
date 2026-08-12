@@ -106,9 +106,6 @@ public class PushNotificationServiceImpl implements PushNotificationService {
                     payload
             );
 
-            // send(notification) defaults to the legacy AESGCM encoding, whose separate
-            // Crypto-Key header modern push services (FCM) reject; RFC 8291 AES128GCM
-            // embeds the key in the payload instead and is what actually works today.
             HttpResponse response = pushService.send(notification, Encoding.AES128GCM);
             int statusCode = response.getStatusLine().getStatusCode();
 

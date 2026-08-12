@@ -41,8 +41,6 @@ class PushNotificationServiceImplTest {
 
     @BeforeAll
     static void registerBouncyCastle() {
-        // Notification's constructor parses EC keys via a "BC" KeyFactory lookup;
-        // in production PushConfiguration registers it once at startup.
         Security.addProvider(new BouncyCastleProvider());
     }
 
@@ -135,8 +133,6 @@ class PushNotificationServiceImplTest {
     }
 
     private PushSubscription subscription() {
-        // Valid base64url-encoded uncompressed EC (P-256) point + 16-byte auth secret,
-        // required because Notification's constructor parses them as real crypto keys.
         PushSubscription subscription = new PushSubscription();
         subscription.setId(5L);
         subscription.setEndpoint("https://push.example.com/endpoint");

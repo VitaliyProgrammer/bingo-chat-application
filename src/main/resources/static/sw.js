@@ -11,8 +11,6 @@ self.addEventListener('push', (event) => {
         body: data.body || '',
         icon: '/icon.png',
         badge: '/icon.png',
-        // Same chat -> replace the previous banner instead of stacking duplicates;
-        // renotify makes the replacement re-alert so a second message isn't missed.
         tag: data.chatId ? 'chat-' + data.chatId : undefined,
         renotify: !!data.chatId,
         data: {chatId: data.chatId}

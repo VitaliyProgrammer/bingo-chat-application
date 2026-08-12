@@ -429,9 +429,6 @@
     let jwtToken = localStorage.getItem('jwt_token') || "";
     let autoSubscribeChatId = null;
 
-    // Push notifications don't carry the JWT - clicking one just opens this page
-    // with #chat-<id>. If we're already logged in (token survives in localStorage),
-    // jump straight to that chat instead of leaving the user to hunt for it manually.
     window.addEventListener('load', () => {
         if (jwtToken) {
             document.getElementById('tokenDisplay').innerText = "Token: " + jwtToken.substring(0, 20) + "...";
