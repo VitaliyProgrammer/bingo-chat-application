@@ -1,7 +1,5 @@
 package org.example.configuration.outbox;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -40,14 +38,14 @@ class OutboxEventPublisherTest {
     }
 
     @Test
-    void publish_reminderEvent_savesWithoutTriggeringImmediateDispatch() {
+    void publish_reminderEvent_alsoTriggersImmediateDispatch() {
 
         OutboxEvent event = event(OutboxEventStatus.MESSAGE_REMINDED, 7L);
         when(outBoxEventRepository.save(event)).thenReturn(event);
 
         outboxEventPublisher.publish(event);
 
-        verify(eventPublisher, never()).publishEvent(any());
+        verify(eventPublisher).publishEvent(new OutboxEventPersistedEvent(7L));
     }
 
     private OutboxEvent event(OutboxEventStatus type, Long id) {

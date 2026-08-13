@@ -1,5 +1,6 @@
 package org.example.configuration.outbox.processor;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.Timer;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -10,10 +11,12 @@ import org.example.configuration.metrics.service.ApplicationMetricsService;
 import org.example.configuration.outbox.entity.OutboxEvent;
 import org.example.configuration.outbox.repository.OutBoxEventRepository;
 import org.example.configuration.outbox.status.OutboxEventStatus;
+import org.example.configuration.rabbitmq.DelayedReminderMessage;
 import org.example.configuration.rabbitmq.OutboxEventPersistedEvent;
 import org.example.configuration.rabbitmq.OutboxMessage;
 import org.example.configuration.rabbitmq.RabbitMqConfiguration;
 import org.example.configuration.scheduler.SchedulerLockManager;
+import org.example.event.MessageRemindedEvent;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -38,6 +41,8 @@ public class OutBoxEventProcessor {
     private final OutBoxEventRepository outBoxEventRepository;
 
     private final RabbitTemplate rabbitTemplate;
+
+    private final ObjectMapper objectMapper;
 
     private final RedisTemplate<String, Object> redisTemplate;
 
@@ -129,14 +134,38 @@ public class OutBoxEventProcessor {
         }
     }
 
-    private void dispatch(OutboxEvent event) {
+    private void dispatch(OutboxEvent event) throws Exception {
 
         log.debug("Dispatching outbox event: id={}, type={}", event.getId(), event.getEventType());
+
+        if (OutboxEventStatus.MESSAGE_REMINDED.name().equals(event.getEventType())) {
+            dispatchReminder(event);
+            return;
+        }
 
         rabbitTemplate.convertAndSend(
                 RabbitMqConfiguration.OUTBOX_EXCHANGE,
                 RabbitMqConfiguration.OUTBOX_ROUTING_KEY,
                 new OutboxMessage(event.getEventType(), event.getPayload())
+        );
+    }
+
+    private void dispatchReminder(OutboxEvent event) throws Exception {
+
+        MessageRemindedEvent reminder = objectMapper.readValue(
+                event.getPayload(), MessageRemindedEvent.class);
+
+        long delayMs = Math.max(0,
+                Duration.between(LocalDateTime.now(), reminder.reminderAt()).toMillis());
+
+        rabbitTemplate.convertAndSend(
+                RabbitMqConfiguration.REMINDERS_EXCHANGE,
+                RabbitMqConfiguration.REMINDERS_ROUTING_KEY,
+                new DelayedReminderMessage(event.getId(), event.getPayload()),
+                message -> {
+                    message.getMessageProperties().setHeader("x-delay", delayMs);
+                    return message;
+                }
         );
     }
 }

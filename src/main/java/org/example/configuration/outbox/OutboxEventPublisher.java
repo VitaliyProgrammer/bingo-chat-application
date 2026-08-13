@@ -3,7 +3,6 @@ package org.example.configuration.outbox;
 import lombok.RequiredArgsConstructor;
 import org.example.configuration.outbox.entity.OutboxEvent;
 import org.example.configuration.outbox.repository.OutBoxEventRepository;
-import org.example.configuration.outbox.status.OutboxEventStatus;
 import org.example.configuration.rabbitmq.OutboxEventPersistedEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
@@ -20,8 +19,6 @@ public class OutboxEventPublisher {
 
         OutboxEvent saved = outBoxEventRepository.save(event);
 
-        if (!OutboxEventStatus.MESSAGE_REMINDED.name().equals(saved.getEventType())) {
-            eventPublisher.publishEvent(new OutboxEventPersistedEvent(saved.getId()));
-        }
+        eventPublisher.publishEvent(new OutboxEventPersistedEvent(saved.getId()));
     }
 }

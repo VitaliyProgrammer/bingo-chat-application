@@ -9,23 +9,32 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.Optional;
 import org.example.configuration.metrics.service.ApplicationMetricsService;
 import org.example.configuration.outbox.entity.OutboxEvent;
 import org.example.configuration.outbox.repository.OutBoxEventRepository;
 import org.example.configuration.outbox.status.OutboxEventStatus;
+import org.example.configuration.rabbitmq.DelayedReminderMessage;
 import org.example.configuration.rabbitmq.OutboxEventPersistedEvent;
 import org.example.configuration.rabbitmq.OutboxMessage;
 import org.example.configuration.rabbitmq.RabbitMqConfiguration;
 import org.example.configuration.scheduler.SchedulerLockManager;
+import org.example.event.MessageRemindedEvent;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.amqp.AmqpException;
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.core.MessagePostProcessor;
+import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
@@ -38,6 +47,9 @@ class OutBoxEventProcessorTest {
 
     @Mock
     private RabbitTemplate rabbitTemplate;
+
+    @Spy
+    private ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
     @Mock
     private RedisTemplate<String, Object> redisTemplate;
@@ -131,6 +143,43 @@ class OutBoxEventProcessorTest {
         processor.onOutboxPersisted(new OutboxEventPersistedEvent(5L));
 
         verify(rabbitTemplate, never()).convertAndSend(anyString(), anyString(), any(Object.class));
+    }
+
+    @Test
+    void processSingle_reminderEvent_dispatchesToDelayedExchangeWithComputedDelay()
+            throws Exception {
+
+        LocalDateTime reminderAt = LocalDateTime.now().plusSeconds(30);
+        MessageRemindedEvent reminder = new MessageRemindedEvent(10L, 20L, 30L, "hi", reminderAt);
+        String payload = objectMapper.writeValueAsString(reminder);
+
+        OutboxEvent event = event(6L, OutboxEventStatus.MESSAGE_REMINDED, payload);
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.setIfAbsent(eq("idempotent:6"), eq("1"), any(Duration.class)))
+                .thenReturn(true);
+
+        processor.processSingle(event);
+
+        ArgumentCaptor<DelayedReminderMessage> messageCaptor =
+                ArgumentCaptor.forClass(DelayedReminderMessage.class);
+        ArgumentCaptor<MessagePostProcessor> postProcessorCaptor =
+                ArgumentCaptor.forClass(MessagePostProcessor.class);
+
+        verify(rabbitTemplate).convertAndSend(
+                eq(RabbitMqConfiguration.REMINDERS_EXCHANGE),
+                eq(RabbitMqConfiguration.REMINDERS_ROUTING_KEY),
+                messageCaptor.capture(),
+                postProcessorCaptor.capture());
+
+        assertThat(messageCaptor.getValue().outboxEventId()).isEqualTo(6L);
+        assertThat(messageCaptor.getValue().payload()).isEqualTo(payload);
+
+        Message amqpMessage = new Message(new byte[0], new MessageProperties());
+        postProcessorCaptor.getValue().postProcessMessage(amqpMessage);
+        long delay = (long) amqpMessage.getMessageProperties().getHeaders().get("x-delay");
+
+        assertThat(delay).isBetween(25_000L, 30_000L);
+        assertThat(event.isProcessed()).isTrue();
     }
 
     private OutboxEvent event(Long id, OutboxEventStatus type, String payload) {
