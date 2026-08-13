@@ -1,6 +1,5 @@
 package org.example.configuration.outbox.processor;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.Timer;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -11,19 +10,19 @@ import org.example.configuration.metrics.service.ApplicationMetricsService;
 import org.example.configuration.outbox.entity.OutboxEvent;
 import org.example.configuration.outbox.repository.OutBoxEventRepository;
 import org.example.configuration.outbox.status.OutboxEventStatus;
+import org.example.configuration.rabbitmq.OutboxEventPersistedEvent;
+import org.example.configuration.rabbitmq.OutboxMessage;
+import org.example.configuration.rabbitmq.RabbitMqConfiguration;
 import org.example.configuration.scheduler.SchedulerLockManager;
-import org.example.event.MessageDeliveredEvent;
-import org.example.event.MessageEditedEvent;
-import org.example.event.MessagePinnedEvent;
-import org.example.event.MessageReactedEvent;
-import org.example.event.MessageReadEvent;
-import org.example.event.MessageSentEvent;
-import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 @Slf4j
 @Component
@@ -38,9 +37,7 @@ public class OutBoxEventProcessor {
 
     private final OutBoxEventRepository outBoxEventRepository;
 
-    private final ApplicationEventPublisher eventPublisher;
-
-    private final ObjectMapper objectMapper;
+    private final RabbitTemplate rabbitTemplate;
 
     private final RedisTemplate<String, Object> redisTemplate;
 
@@ -86,6 +83,15 @@ public class OutBoxEventProcessor {
         }
     }
 
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Async("eventExecutor")
+    public void onOutboxPersisted(OutboxEventPersistedEvent event) {
+
+        outBoxEventRepository.findById(event.outboxEventId())
+                .filter(outboxEvent -> !outboxEvent.isProcessed())
+                .ifPresent(this::processSingle);
+    }
+
     public void processSingle(OutboxEvent event) {
         try {
             String key = "idempotent:" + event.getId();
@@ -123,62 +129,14 @@ public class OutBoxEventProcessor {
         }
     }
 
-    private void dispatch(OutboxEvent event) throws Exception {
-
-        OutboxEventStatus type = OutboxEventStatus.valueOf(event.getEventType());
+    private void dispatch(OutboxEvent event) {
 
         log.debug("Dispatching outbox event: id={}, type={}", event.getId(), event.getEventType());
 
-        switch (type) {
-
-            case MESSAGE_SENT -> {
-                MessageSentEvent messageEvent = objectMapper.readValue(
-                        event.getPayload(),
-                        MessageSentEvent.class
-                );
-                eventPublisher.publishEvent(messageEvent);
-            }
-
-            case MESSAGE_DELIVERED -> {
-                MessageDeliveredEvent messageEvent = objectMapper.readValue(
-                        event.getPayload(),
-                        MessageDeliveredEvent.class
-                );
-                eventPublisher.publishEvent(messageEvent);
-            }
-
-            case MESSAGE_READ -> {
-                MessageReadEvent messageEvent = objectMapper.readValue(
-                        event.getPayload(),
-                        MessageReadEvent.class
-                );
-                eventPublisher.publishEvent(messageEvent);
-            }
-
-            case MESSAGE_EDITED -> {
-                MessageEditedEvent messageEvent = objectMapper.readValue(
-                        event.getPayload(),
-                        MessageEditedEvent.class
-                );
-                eventPublisher.publishEvent(messageEvent);
-            }
-
-            case MESSAGE_PINNED -> {
-                MessagePinnedEvent messageEvent = objectMapper.readValue(
-                        event.getPayload(),
-                        MessagePinnedEvent.class
-                );
-                eventPublisher.publishEvent(messageEvent);
-            }
-
-            case MESSAGE_REACTED -> {
-                MessageReactedEvent messageEvent = objectMapper.readValue(
-                        event.getPayload(),
-                        MessageReactedEvent.class
-                );
-                eventPublisher.publishEvent(messageEvent);
-            }
-            default -> throw new IllegalStateException("Unknown event type!");
-        }
+        rabbitTemplate.convertAndSend(
+                RabbitMqConfiguration.OUTBOX_EXCHANGE,
+                RabbitMqConfiguration.OUTBOX_ROUTING_KEY,
+                new OutboxMessage(event.getEventType(), event.getPayload())
+        );
     }
 }

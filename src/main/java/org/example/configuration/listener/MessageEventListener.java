@@ -14,9 +14,7 @@ import org.example.event.MessageReadEvent;
 import org.example.event.MessageSentEvent;
 import org.example.service.PushNotificationService;
 import org.example.service.RedisService;
-import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -30,8 +28,6 @@ public class MessageEventListener {
     private final SimpMessagingTemplate messagingTemplate;
     private final PushNotificationService pushNotificationService;
 
-    @Async("eventExecutor")
-    @EventListener
     public void handleMessageSent(MessageSentEvent event) {
 
         Long chatId = event.chatId();
@@ -73,8 +69,6 @@ public class MessageEventListener {
         });
     }
 
-    @Async("eventExecutor")
-    @EventListener
     public void handleMessageDelivered(MessageDeliveredEvent event) {
 
         String key = "event:delivered" + event.messageId() + ":" + event.userId();
@@ -96,8 +90,6 @@ public class MessageEventListener {
         );
     }
 
-    @Async("eventExecutor")
-    @EventListener
     public void handleMessageRead(MessageReadEvent event) {
 
         String key = "event:read:" + event.chatId() + ":" + event.userId();
@@ -119,8 +111,6 @@ public class MessageEventListener {
         );
     }
 
-    @Async("eventExecutor")
-    @EventListener
     public void handleMessageEdited(MessageEditedEvent event) {
 
         String key = "event:edited:" + event.message().id() + ":" + event.message().editedAt();
@@ -136,8 +126,6 @@ public class MessageEventListener {
         messagingTemplate.convertAndSend("/topic/chat/" + event.chatId(), event.message());
     }
 
-    @Async("eventExecutor")
-    @EventListener
     public void handleMessagePinned(MessagePinnedEvent event) {
 
         String key = "event:pinned:" + event.message().id();
@@ -153,8 +141,6 @@ public class MessageEventListener {
         messagingTemplate.convertAndSend("/topic/chat/" + event.chatId(), event.message());
     }
 
-    @Async("eventExecutor")
-    @EventListener
     public void handleMessageReacted(MessageReactedEvent event) {
 
         String key = "event:reacted:" + event.message().id() + ":" + event.message().reactions();

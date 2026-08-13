@@ -11,8 +11,8 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.configuration.metrics.service.ApplicationMetricsService;
+import org.example.configuration.outbox.OutboxEventPublisher;
 import org.example.configuration.outbox.factory.OutBoxEventFactory;
-import org.example.configuration.outbox.repository.OutBoxEventRepository;
 import org.example.dto.request.MessageAckRequestDto;
 import org.example.dto.request.MessageReminderRequestDto;
 import org.example.dto.request.MessageRequestDto;
@@ -80,7 +80,7 @@ public class MessageServiceImpl implements MessageService {
 
     private final RedisTemplate<String, Object> redisTemplate;
 
-    private final OutBoxEventRepository outBoxEventRepository;
+    private final OutboxEventPublisher outboxEventPublisher;
 
     private final OutBoxEventFactory outBoxEventFactory;
 
@@ -146,7 +146,7 @@ public class MessageServiceImpl implements MessageService {
 
         MessageResponseDto response = messageMapper.toDto(message);
 
-        outBoxEventRepository.save(outBoxEventFactory.messageEdited(
+        outboxEventPublisher.publish(outBoxEventFactory.messageEdited(
                 new MessageEditedEvent(message.getChat().getId(), response)
         ));
 
@@ -176,7 +176,7 @@ public class MessageServiceImpl implements MessageService {
 
         log.info("Message delivered: messageId={}, chatId={}", messageId, currentUser.getId());
 
-        outBoxEventRepository.save(outBoxEventFactory.messageDelivered(
+        outboxEventPublisher.publish(outBoxEventFactory.messageDelivered(
                 new MessageDeliveredEvent(message.getChat().getId(), message.getId(),
                         currentUser.getId())
         ));
@@ -205,7 +205,7 @@ public class MessageServiceImpl implements MessageService {
 
         log.info("Message read: messageId={}, chatId={}", messageId, currentUser.getId());
 
-        outBoxEventRepository.save(outBoxEventFactory.messageRead(
+        outboxEventPublisher.publish(outBoxEventFactory.messageRead(
                 new MessageReadEvent(message.getChat().getId(), currentUser.getId())));
 
         return messageMapper.toDto(message);
@@ -227,7 +227,7 @@ public class MessageServiceImpl implements MessageService {
 
             redisService.resetUnReadMessages(currentUser.getId(), chatId);
 
-            outBoxEventRepository.save(outBoxEventFactory.messageRead(
+            outboxEventPublisher.publish(outBoxEventFactory.messageRead(
                     new MessageReadEvent(chatId, currentUser.getId())));
         }
     }
@@ -308,7 +308,7 @@ public class MessageServiceImpl implements MessageService {
 
         MessageResponseDto response = messageMapper.toDto(message);
 
-        outBoxEventRepository.save(outBoxEventFactory.messagePinned(
+        outboxEventPublisher.publish(outBoxEventFactory.messagePinned(
                 new MessagePinnedEvent(message.getChat().getId(), response)
         ));
 
@@ -325,7 +325,7 @@ public class MessageServiceImpl implements MessageService {
 
         message.setReminderAt(request.reminderAt());
 
-        outBoxEventRepository.save(outBoxEventFactory.messageReminded(new MessageRemindedEvent(
+        outboxEventPublisher.publish(outBoxEventFactory.messageReminded(new MessageRemindedEvent(
                 message.getId(), currentUserProvider.getAuthenticatedUser().getId(),
                 message.getChat().getId(), message.getContent(), request.reminderAt())));
 
@@ -391,7 +391,7 @@ public class MessageServiceImpl implements MessageService {
 
         MessageResponseDto response = messageMapper.toDto(message, reactions);
 
-        outBoxEventRepository.save(outBoxEventFactory.messageReacted(
+        outboxEventPublisher.publish(outBoxEventFactory.messageReacted(
                 new MessageReactedEvent(message.getChat().getId(), response)
         ));
 
@@ -466,7 +466,7 @@ public class MessageServiceImpl implements MessageService {
                 .map(User::getId)
                 .collect(Collectors.toMap(userId -> userId, redisService::isUserOnline));
 
-        outBoxEventRepository.save(outBoxEventFactory.messageSent(
+        outboxEventPublisher.publish(outBoxEventFactory.messageSent(
                 new MessageSentEvent(chat.getId(), response, participantsOnline)
         ));
 
@@ -605,7 +605,7 @@ public class MessageServiceImpl implements MessageService {
 
         message.setStatus(MessageStatus.DELIVERED);
 
-        outBoxEventRepository.save(outBoxEventFactory.messageDelivered(
+        outboxEventPublisher.publish(outBoxEventFactory.messageDelivered(
                         new MessageDeliveredEvent(
                                 message.getChat().getId(),
                                 message.getId(),

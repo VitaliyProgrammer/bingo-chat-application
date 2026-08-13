@@ -14,6 +14,8 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import org.example.configuration.outbox.OutboxEventPublisher;
+import org.example.configuration.outbox.factory.OutBoxEventFactory;
 import org.example.dto.request.MessageRequestDto;
 import org.example.dto.request.ReactionRequestDto;
 import org.example.entity.Chat;
@@ -21,8 +23,6 @@ import org.example.entity.Message;
 import org.example.entity.MessageReaction;
 import org.example.entity.User;
 import org.example.entity.type.ChatType;
-import org.example.configuration.outbox.factory.OutBoxEventFactory;
-import org.example.configuration.outbox.repository.OutBoxEventRepository;
 import org.example.exception.BadRequestException;
 import org.example.exception.ForbiddenActionException;
 import org.example.mapper.MessageMapper;
@@ -74,7 +74,7 @@ class MessageServiceImplTest {
     private MessageMapper messageMapper;
 
     @Mock
-    private OutBoxEventRepository outBoxEventRepository;
+    private OutboxEventPublisher outboxEventPublisher;
 
     @Mock
     private OutBoxEventFactory outBoxEventFactory;
