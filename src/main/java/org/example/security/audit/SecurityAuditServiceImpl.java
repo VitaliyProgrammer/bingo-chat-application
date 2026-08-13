@@ -27,4 +27,9 @@ public class SecurityAuditServiceImpl implements SecurityAuditService {
     public void forbiddenChatAccess(Long userId, Long chatId) {
         log.warn("SECURITY_AUDIT forbidden_chat_access userId={}, reason={}", userId, chatId);
     }
+
+    @Override
+    public void rateLimitExceeded(String ip, String endpoint) {
+        log.warn("SECURITY_AUDIT rate_limit_exceeded ip={}, endpoint={}", ip, endpoint);
+    }
 }

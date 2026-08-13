@@ -12,6 +12,7 @@ public final class MetricsNames {
     public static final String OUTBOX_FAILED = "outbox.failed";
     public static final String OUTBOX_LATENCY = "outbox.processing.time";
     public static final String WEB_SOCKET_ERROR = "websocket.error";
+    public static final String RATE_LIMIT_EXCEEDED = "rate_limit.exceeded";
 
     public MetricsNames() {
     }

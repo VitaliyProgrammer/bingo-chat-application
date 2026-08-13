@@ -22,6 +22,8 @@ public interface ApplicationMetricsService {
 
     void incrementWebSocketError();
 
+    void incrementRateLimitExceeded(String endpoint);
+
     Timer.Sample startOutboxTimer();
 
     void stopOutboxTimer(Timer.Sample sample);

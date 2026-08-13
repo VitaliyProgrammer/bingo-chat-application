@@ -121,6 +121,17 @@ public class RedisServiceImpl implements RedisService {
     }
 
     @Override
+    public boolean isAllowed(String key, int maxRequests, Duration window) {
+
+        long count = increment(key);
+        if (count == 1) {
+            expire(key, window);
+        }
+
+        return count <= maxRequests;
+    }
+
+    @Override
     public void incrementSessions(Long userId) {
 
         redisTemplate.opsForValue().increment(RedisKeys.userSessions(userId));

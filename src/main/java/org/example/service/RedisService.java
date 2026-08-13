@@ -36,6 +36,8 @@ public interface RedisService {
 
     void expire(String key, Duration ttl);
 
+    boolean isAllowed(String key, int maxRequests, Duration window);
+
     void incrementSessions(Long userId);
 
     void decrementSessions(Long userId);

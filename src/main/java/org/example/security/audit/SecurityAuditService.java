@@ -9,4 +9,6 @@ public interface SecurityAuditService {
     void webSocketDenied(Long userId, String destination, String reason);
 
     void forbiddenChatAccess(Long userId, Long chatId);
+
+    void rateLimitExceeded(String ip, String endpoint);
 }

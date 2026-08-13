@@ -26,6 +26,8 @@ public class SecurityAccessConfiguration {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
+    private final AuthRateLimitFilter authRateLimitFilter;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
         httpSecurity
@@ -49,7 +51,8 @@ public class SecurityAccessConfiguration {
                 .sessionManagement(
                         session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtAuthenticationFilter,
-                        UsernamePasswordAuthenticationFilter.class);
+                        UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(authRateLimitFilter, JwtAuthenticationFilter.class);
 
         return httpSecurity.build();
     }

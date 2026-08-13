@@ -22,6 +22,9 @@ import org.springframework.stereotype.Component;
 public class WebSocketSubscriptionGuard implements ChannelInterceptor {
 
     private static final String CHAT_PREFIX = "/topic/chat/";
+    private static final String CHAT_SEND_DESTINATION = "/app/chat.send";
+    private static final int SUBSCRIBE_LIMIT = 10;
+    private static final int SEND_LIMIT = 20;
     private final ChatRepository chatRepository;
 
     private final RedisService redisService;
@@ -69,6 +72,19 @@ public class WebSocketSubscriptionGuard implements ChannelInterceptor {
                 throw new WebSocketAccessDeniedException("No access to chat!");
             }
             log.info("Subscribe allowed: userId={}, chatId={}", userId, chatId);
+        } else if (StompCommand.SEND.equals(accessor.getCommand())
+                && CHAT_SEND_DESTINATION.equals(accessor.getDestination())) {
+
+            Principal principal = accessor.getUser();
+
+            if (principal == null) {
+                securityAuditService.webSocketDenied(null, CHAT_SEND_DESTINATION,
+                        "Unauthenticated user!");
+                throw new WebSocketAccessDeniedException("Unauthenticated user!");
+            }
+
+            Long userId = parseUserId(principal);
+            validateSendRateLimit(userId);
         }
         return message;
     }
@@ -100,15 +116,22 @@ public class WebSocketSubscriptionGuard implements ChannelInterceptor {
 
         String key = "websocket:subscribe:" + userId;
 
-        // Allow up to 10 subscriptions per second to prevent connection drops on
-        // multiple subscriptions
-        long count = redisService.increment(key);
-        if (count == 1) {
-            redisService.expire(key, Duration.ofSeconds(1));
-        }
-
-        if (count > 10) {
+        if (!redisService.isAllowed(key, SUBSCRIBE_LIMIT, Duration.ofSeconds(1))) {
             throw new WebSocketAccessDeniedException("Too many subscribe requests!");
+        }
+    }
+
+    private void validateSendRateLimit(Long userId) {
+
+        String key = "websocket:send:" + userId;
+
+        if (!redisService.isAllowed(key, SEND_LIMIT, Duration.ofSeconds(10))) {
+            securityAuditService.webSocketDenied(userId, CHAT_SEND_DESTINATION,
+                    "Too many messages!");
+            metricsService.incrementWebSocketDenied();
+
+            log.warn("Denied send: userId={}, reason=rate_limit", userId);
+            throw new WebSocketAccessDeniedException("Too many messages, slow down!");
         }
     }
 }

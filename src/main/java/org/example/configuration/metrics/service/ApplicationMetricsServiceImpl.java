@@ -78,6 +78,12 @@ public class ApplicationMetricsServiceImpl implements ApplicationMetricsService 
     }
 
     @Override
+    public void incrementRateLimitExceeded(String endpoint) {
+
+        meterRegistry.counter(MetricsNames.RATE_LIMIT_EXCEEDED, "endpoint", endpoint).increment();
+    }
+
+    @Override
     public Timer.Sample startOutboxTimer() {
 
         return Timer.start(meterRegistry);
