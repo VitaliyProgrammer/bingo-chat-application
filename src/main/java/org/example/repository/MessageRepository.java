@@ -30,12 +30,6 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
 
     List<Message> findAllByChatIdAndIsPinnedTrue(Long chatId);
 
-    /**
-     * Locks the message row so concurrent reaction writes on the same message
-     * serialize, preventing the group reaction type cap from being raced past.
-     *
-     * @param messageId the message ID
-     */
     @Query(value = "SELECT id FROM messages WHERE id = :messageId FOR UPDATE", nativeQuery = true)
     Long lockMessageForUpdate(@Param("messageId") Long messageId);
 }

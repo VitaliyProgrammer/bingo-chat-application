@@ -31,15 +31,6 @@ public class MessageController {
 
     private final MessageService messageService;
 
-    /*    @PostMapping("/send")
-        @ResponseStatus(HttpStatus.CREATED)
-        @Operation(summary = "Send message",
-                description = "Send message to a chat")
-        public MessageResponseDto sendMessage(@Valid @RequestBody MessageRequestDto request) {
-
-            return messageService.sendMessage(request);
-        }*/
-
     @PutMapping("/{id}")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Edit message",

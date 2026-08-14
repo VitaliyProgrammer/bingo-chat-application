@@ -40,13 +40,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.MessageSource;
 
-/**
- * Unit tests for the group-chat reaction type cap (MAX_GROUP_REACTION_TYPES = 8).
- * All collaborators are mocked - no Spring context, no database. This only proves
- * the counting logic is correct; it CANNOT prove the {@code FOR UPDATE} lock actually
- * prevents a race between two concurrent requests - that needs a real DB
- * (see the integration test with Testcontainers).
- */
 @ExtendWith(MockitoExtension.class)
 class
 
@@ -110,7 +103,6 @@ MessageServiceImplTest {
     @Test
     void addReaction_newTypeUnderCap_isAllowed() {
 
-        // 7 distinct types already exist, all from other users - room for one more.
         when(messageReactionRepository.findByMessageIdForUpdate(MESSAGE_ID))
                 .thenReturn(reactionsFromOtherUsers(7));
         when(messageReactionRepository.findByMessageIdAndUserId(MESSAGE_ID, CURRENT_USER_ID))
@@ -124,7 +116,6 @@ MessageServiceImplTest {
     @Test
     void addReaction_newTypeAtCap_throwsBadRequestExceptionWithResolvedMessage() {
 
-        // Cap already reached by 8 other users - a 9th distinct type must be rejected.
         when(messageReactionRepository.findByMessageIdForUpdate(MESSAGE_ID))
                 .thenReturn(reactionsFromOtherUsers(8));
         when(messageSource.getMessage(
@@ -142,8 +133,6 @@ MessageServiceImplTest {
     @Test
     void addReaction_joiningExistingTypeAtCap_isAllowedDespiteCap() {
 
-        // Cap reached (8 types), but the caller picks one that ALREADY exists -
-        // no new slot is consumed, so this must succeed even though we're at the cap.
         List<MessageReaction> existing = reactionsFromOtherUsers(8);
         String existingEmoji = existing.get(0).getEmoji();
 
@@ -159,12 +148,8 @@ MessageServiceImplTest {
     @Test
     void addReaction_switchingOwnReactionAtCap_isAllowedBecauseOwnSlotIsExcluded() {
 
-        // 7 OTHER distinct types + the caller's own current reaction ("old") = 8 rows,
-        // but only 7 count against the cap once the caller's own row is excluded -
-        // so switching to a brand-new emoji must be allowed.
         List<MessageReaction> reactions = new java.util.ArrayList<>(reactionsFromOtherUsers(7));
         reactions.add(reaction(user(999L), "old"));
-        // caller's own previous reaction, stored under CURRENT_USER_ID:
         reactions.set(reactions.size() - 1, reaction(currentUser, "old"));
 
         when(messageReactionRepository.findByMessageIdForUpdate(MESSAGE_ID)).thenReturn(reactions);
@@ -187,11 +172,6 @@ MessageServiceImplTest {
 
         messageService.addReaction(MESSAGE_ID, new ReactionRequestDto("👍"));
 
-        // The cap only exists to protect GROUP chats from unbounded reaction sprawl -
-        // private chats have at most a couple of participants, so the lock (the
-        // group-only side effect) must never fire here. findByMessageId still gets
-        // called once, but from publishReactionEvent building the response - not
-        // from the (skipped) cap check.
         verify(messageRepository, never()).lockMessageForUpdate(MESSAGE_ID);
     }
 

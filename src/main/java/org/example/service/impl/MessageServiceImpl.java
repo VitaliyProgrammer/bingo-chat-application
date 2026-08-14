@@ -61,11 +61,6 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class MessageServiceImpl implements MessageService {
 
-    // GROUP chats only: any emoji is a valid reaction TYPE, but a single message can
-    // only ever accumulate this many DISTINCT types (mirrors Telegram's reaction bar
-    // under high-view posts) - past the cap, new reactors must join an existing type
-    // rather than opening a new slot. Private/self chats have at most a couple of
-    // participants, so this scale problem can't occur there and stay unrestricted.
     private static final int MAX_GROUP_REACTION_TYPES = 8;
 
     private final MessageRepository messageRepository;
@@ -343,10 +338,6 @@ public class MessageServiceImpl implements MessageService {
         validateUserInChat(message.getChat().getId(), currentUser.getId());
 
         if (message.getChat().getChatType() == ChatType.GROUP) {
-            // Lock the message row FIRST so a concurrent addReaction on the same message
-            // can't read the same pre-cap state and both slip past MAX_GROUP_REACTION_TYPES.
-            // The second transaction blocks here until the first commits, then re-reads
-            // fresh state - same technique as the chat-row lock in sendMessageInternal.
             messageRepository.lockMessageForUpdate(messageId);
             validateGroupReactionSlot(messageId, currentUser.getId(), request.emoji());
         }
@@ -443,7 +434,6 @@ public class MessageServiceImpl implements MessageService {
 
         chat.setLastMessageText(savedMessage.getContent());
         chat.setLastActivityTime(LocalDateTime.now());
-        // lastMessageSequence is already set via chat.setLastMessageSequence(sequence) earlier
 
         chatRepository.save(chat);
 
@@ -525,9 +515,6 @@ public class MessageServiceImpl implements MessageService {
             return;
         }
 
-        // Brand-new type for this message - only counts against the cap if it would
-        // add a slot. The caller's own current reaction (if any) is excluded, since
-        // switching away from it frees that slot rather than consuming a new one.
         long distinctTypesFromOthers = existingReactions.stream()
                 .filter(reaction -> !reaction.getUser().getId().equals(currentUserId))
                 .map(MessageReaction::getEmoji)

@@ -42,11 +42,6 @@ import org.springframework.context.MessageSource;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
-/**
- * Unit tests for group chat creation. All collaborators are mocked - this only
- * proves the business rules (participant count, missing users, dedup of the
- * creator) are enforced correctly; it does not touch a real database.
- */
 @ExtendWith(MockitoExtension.class)
 class ChatServiceImplTest {
 
@@ -133,7 +128,6 @@ class ChatServiceImplTest {
                 .thenReturn(List.of(user(2L), user(3L)));
         when(chatRepository.save(any(Chat.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        // Client accidentally included the creator's own ID (1L) alongside the others.
         chatService.createGroupChat(new GroupChatRequestDto("Team Gamma", Set.of(1L, 2L, 3L), null));
 
         ArgumentCaptor<Chat> captor = ArgumentCaptor.forClass(Chat.class);
@@ -163,7 +157,6 @@ class ChatServiceImplTest {
     @Test
     void createGroupChat_participantDoesNotExist_throwsUserNotFoundException() {
 
-        // Only 2L is a real user - 999L doesn't exist.
         when(userRepository.findAllById(Set.of(2L, 999L)))
                 .thenReturn(List.of(user(2L)));
 
@@ -194,7 +187,6 @@ class ChatServiceImplTest {
     @Test
     void addParticipants_calledByNonOwner_throwsForbidden() {
 
-        // Owner is 2L, not the current user (1L) - just a regular member.
         Chat chat = groupChat(CHAT_ID, 2L, user(2L), currentUser, user(3L));
         when(chatRepository.findById(CHAT_ID)).thenReturn(Optional.of(chat));
 
@@ -331,7 +323,6 @@ class ChatServiceImplTest {
     @Test
     void transferOwnership_calledByNonOwner_throwsForbidden() {
 
-        // Owner is 2L, not the current user (1L) - just a regular member.
         Chat chat = groupChat(CHAT_ID, 2L, user(2L), currentUser, user(3L));
         when(chatRepository.findById(CHAT_ID)).thenReturn(Optional.of(chat));
 
@@ -414,7 +405,6 @@ class ChatServiceImplTest {
     @Test
     void updateGroupAvatar_calledByNonOwner_throwsForbidden() {
 
-        // Owner is 2L, not the current user (1L) - just a regular member.
         Chat chat = groupChat(CHAT_ID, 2L, user(2L), currentUser);
         MultipartFile file = new MockMultipartFile("file", "avatar.png",
                 "image/png", new byte[]{1, 2, 3});

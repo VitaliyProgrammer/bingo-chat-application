@@ -44,8 +44,6 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class ChatServiceImpl implements ChatService {
 
-    // A group needs to be visibly different from a private chat (2 people) -
-    // creator + at least 2 others, so 3+ people total.
     private static final int MIN_OTHER_PARTICIPANTS = 2;
 
     private static final String GROUP_AVATARS_DIR = "avatars/groups";
@@ -442,9 +440,6 @@ public class ChatServiceImpl implements ChatService {
 
         if (chat.getChatType() == ChatType.GROUP) {
 
-            // A group has no single "companion" - fields that only make sense for a
-            // 1-on-1 chat (companionId, online presence) are left empty; avatarUrl
-            // comes from the group's own uploaded picture, if any.
             return new ChatListItemResponseDto(
                     chat.getId(),
                     null,

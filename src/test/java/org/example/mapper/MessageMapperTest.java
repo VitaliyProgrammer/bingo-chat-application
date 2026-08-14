@@ -34,8 +34,6 @@ class MessageMapperTest {
     @Test
     void privateChatOwnerSends_isNotAdmin() {
 
-        // The admin badge only exists for GROUP chats - matching ownerId in a
-        // PRIVATE chat must not accidentally flip the flag to true.
         Message message = message(chat(ChatType.PRIVATE, OWNER_ID), user(OWNER_ID));
 
         assertThat(messageMapper.toDto(message).isSenderAdmin()).isFalse();
