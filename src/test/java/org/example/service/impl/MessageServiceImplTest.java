@@ -48,7 +48,11 @@ import org.springframework.context.MessageSource;
  * (see the integration test with Testcontainers).
  */
 @ExtendWith(MockitoExtension.class)
-class MessageServiceImplTest {
+class
+
+
+
+MessageServiceImplTest {
 
     private static final Long MESSAGE_ID = 100L;
     private static final Long CHAT_ID = 10L;
@@ -107,7 +111,7 @@ class MessageServiceImplTest {
     void addReaction_newTypeUnderCap_isAllowed() {
 
         // 7 distinct types already exist, all from other users - room for one more.
-        when(messageReactionRepository.findByMessageId(MESSAGE_ID))
+        when(messageReactionRepository.findByMessageIdForUpdate(MESSAGE_ID))
                 .thenReturn(reactionsFromOtherUsers(7));
         when(messageReactionRepository.findByMessageIdAndUserId(MESSAGE_ID, CURRENT_USER_ID))
                 .thenReturn(Optional.empty());
@@ -121,7 +125,7 @@ class MessageServiceImplTest {
     void addReaction_newTypeAtCap_throwsBadRequestExceptionWithResolvedMessage() {
 
         // Cap already reached by 8 other users - a 9th distinct type must be rejected.
-        when(messageReactionRepository.findByMessageId(MESSAGE_ID))
+        when(messageReactionRepository.findByMessageIdForUpdate(MESSAGE_ID))
                 .thenReturn(reactionsFromOtherUsers(8));
         when(messageSource.getMessage(
                 eq("reaction.limit.exceeded"), isNull(), anyString(), any(Locale.class)))
@@ -143,7 +147,7 @@ class MessageServiceImplTest {
         List<MessageReaction> existing = reactionsFromOtherUsers(8);
         String existingEmoji = existing.get(0).getEmoji();
 
-        when(messageReactionRepository.findByMessageId(MESSAGE_ID)).thenReturn(existing);
+        when(messageReactionRepository.findByMessageIdForUpdate(MESSAGE_ID)).thenReturn(existing);
         when(messageReactionRepository.findByMessageIdAndUserId(MESSAGE_ID, CURRENT_USER_ID))
                 .thenReturn(Optional.empty());
 
@@ -163,7 +167,7 @@ class MessageServiceImplTest {
         // caller's own previous reaction, stored under CURRENT_USER_ID:
         reactions.set(reactions.size() - 1, reaction(currentUser, "old"));
 
-        when(messageReactionRepository.findByMessageId(MESSAGE_ID)).thenReturn(reactions);
+        when(messageReactionRepository.findByMessageIdForUpdate(MESSAGE_ID)).thenReturn(reactions);
         when(messageReactionRepository.findByMessageIdAndUserId(MESSAGE_ID, CURRENT_USER_ID))
                 .thenReturn(Optional.of(reactions.get(reactions.size() - 1)));
 

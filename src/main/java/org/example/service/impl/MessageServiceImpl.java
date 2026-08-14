@@ -516,7 +516,7 @@ public class MessageServiceImpl implements MessageService {
     private void validateGroupReactionSlot(Long messageId, Long currentUserId, String emoji) {
 
         List<MessageReaction> existingReactions =
-                messageReactionRepository.findByMessageId(messageId);
+                messageReactionRepository.findByMessageIdForUpdate(messageId);
 
         boolean emojiAlreadyUsedOnMessage = existingReactions.stream()
                 .anyMatch(reaction -> reaction.getEmoji().equals(emoji));
