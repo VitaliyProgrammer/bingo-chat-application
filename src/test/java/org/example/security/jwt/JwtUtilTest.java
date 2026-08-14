@@ -1,6 +1,7 @@
 package org.example.security.jwt;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.jsonwebtoken.ExpiredJwtException;
@@ -39,42 +40,42 @@ class JwtUtilTest {
     }
 
     @Test
-    void isValidToken_freshToken_returnsTrue() {
+    void validateToken_freshToken_doesNotThrow() {
         String token = jwtUtil.generateToken(EMAIL, List.of("USER"));
 
-        assertThat(jwtUtil.isValidToken(token)).isTrue();
+        assertThatCode(() -> jwtUtil.validateToken(token)).doesNotThrowAnyException();
     }
 
     @Test
-    void isValidToken_expiredToken_throwsJwtTokenExpiredException() {
+    void validateToken_expiredToken_throwsJwtTokenExpiredException() {
         JwtUtil expiredJwtUtil = new JwtUtil(SECRET, -1000L);
         String token = expiredJwtUtil.generateToken(EMAIL, List.of("USER"));
 
-        assertThatThrownBy(() -> expiredJwtUtil.isValidToken(token))
+        assertThatThrownBy(() -> expiredJwtUtil.validateToken(token))
                 .isInstanceOf(JwtTokenExpiredException.class);
     }
 
     @Test
-    void isValidToken_tamperedSignature_throwsInvalidJwtTokenException() {
+    void validateToken_tamperedSignature_throwsInvalidJwtTokenException() {
         String token = jwtUtil.generateToken(EMAIL, List.of("USER"));
         String tampered = token.substring(0, token.length() - 2) + "xx";
 
-        assertThatThrownBy(() -> jwtUtil.isValidToken(tampered))
+        assertThatThrownBy(() -> jwtUtil.validateToken(tampered))
                 .isInstanceOf(InvalidJwtTokenException.class);
     }
 
     @Test
-    void isValidToken_signedWithDifferentSecret_throwsInvalidJwtTokenException() {
+    void validateToken_signedWithDifferentSecret_throwsInvalidJwtTokenException() {
         JwtUtil otherJwtUtil = new JwtUtil(OTHER_SECRET, EXPIRATION_MS);
         String token = otherJwtUtil.generateToken(EMAIL, List.of("USER"));
 
-        assertThatThrownBy(() -> jwtUtil.isValidToken(token))
+        assertThatThrownBy(() -> jwtUtil.validateToken(token))
                 .isInstanceOf(InvalidJwtTokenException.class);
     }
 
     @Test
-    void isValidToken_malformedToken_throwsInvalidJwtTokenException() {
-        assertThatThrownBy(() -> jwtUtil.isValidToken("not-a-jwt-token"))
+    void validateToken_malformedToken_throwsInvalidJwtTokenException() {
+        assertThatThrownBy(() -> jwtUtil.validateToken("not-a-jwt-token"))
                 .isInstanceOf(InvalidJwtTokenException.class);
     }
 

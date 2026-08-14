@@ -48,13 +48,12 @@ public class JwtUtil {
         });
     }
 
-    public boolean isValidToken(String token) {
+    public void validateToken(String token) {
         try {
             Jwts.parserBuilder()
                     .setSigningKey(secret)
                     .build()
                     .parseClaimsJws(token);
-            return true;
 
         } catch (ExpiredJwtException exception) {
             throw new JwtTokenExpiredException("JWT token expired!");

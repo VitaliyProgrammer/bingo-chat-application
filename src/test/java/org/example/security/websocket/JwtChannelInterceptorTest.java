@@ -3,6 +3,7 @@ package org.example.security.websocket;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -51,7 +52,6 @@ class JwtChannelInterceptorTest {
 
     @Test
     void preSend_connectWithValidToken_authenticatesSession() {
-        when(jwtUtil.isValidToken(VALID_TOKEN)).thenReturn(true);
         when(jwtUtil.getUsernameFromToken(VALID_TOKEN)).thenReturn(EMAIL);
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
 
@@ -65,8 +65,8 @@ class JwtChannelInterceptorTest {
 
     @Test
     void preSend_connectWithExpiredToken_bubblesUpJwtTokenExpiredException() {
-        when(jwtUtil.isValidToken(VALID_TOKEN))
-                .thenThrow(new JwtTokenExpiredException("JWT token expired!"));
+        doThrow(new JwtTokenExpiredException("JWT token expired!"))
+                .when(jwtUtil).validateToken(VALID_TOKEN);
 
         Message<?> message = connectMessage(VALID_TOKEN);
 
@@ -105,7 +105,7 @@ class JwtChannelInterceptorTest {
         Message<?> result = interceptor.preSend(message, null);
 
         assertThat(result).isSameAs(message);
-        verify(jwtUtil, never()).isValidToken(anyString());
+        verify(jwtUtil, never()).validateToken(anyString());
     }
 
     private Message<?> connectMessage(String token) {

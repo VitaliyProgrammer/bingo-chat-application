@@ -45,9 +45,7 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
 
             String token = extractToken(accessor);
 
-            if (!jwtUtil.isValidToken(token)) {
-                throw new WebSocketAccessDeniedException("Invalid token!");
-            }
+            jwtUtil.validateToken(token);
 
             String email = jwtUtil.getUsernameFromToken(token);
 
