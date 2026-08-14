@@ -1,15 +1,26 @@
 package org.example.service.impl;
 
 import java.time.Duration;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.example.service.RedisService;
 import org.example.service.redis.RedisKeys;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
 public class RedisServiceImpl implements RedisService {
+
+    private static final RedisScript<Long> RATE_LIMIT_SCRIPT = new DefaultRedisScript<>("""
+            local current = redis.call('INCR', KEYS[1])
+            if current == 1 then
+                redis.call('EXPIRE', KEYS[1], ARGV[1])
+            end
+            return current
+            """, Long.class);
 
     private final RedisTemplate<String, Object> redisTemplate;
 
@@ -123,12 +134,10 @@ public class RedisServiceImpl implements RedisService {
     @Override
     public boolean isAllowed(String key, int maxRequests, Duration window) {
 
-        long count = increment(key);
-        if (count == 1) {
-            expire(key, window);
-        }
+        Long count = redisTemplate.execute(RATE_LIMIT_SCRIPT, List.of(key),
+                String.valueOf(window.getSeconds()));
 
-        return count <= maxRequests;
+        return count != null && count <= maxRequests;
     }
 
     @Override
