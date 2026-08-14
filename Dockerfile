@@ -10,6 +10,9 @@ RUN mvn -B -DskipTests package
 FROM eclipse-temurin:17-jre
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN addgroup --system spring && adduser --system --ingroup spring spring
 RUN mkdir -p /app/uploads && chown -R spring:spring /app
 USER spring:spring

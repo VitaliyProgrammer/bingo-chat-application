@@ -43,7 +43,8 @@ public class SecurityAccessConfiguration {
                                                 "/websocket",
                                                 "/stomp-test.html",
                                                 "/sw.js",
-                                                "/uploads/**"
+                                                "/uploads/**",
+                                                "/actuator/health"
                                         )
                                         .permitAll()
                                         .anyRequest()
