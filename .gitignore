@@ -5,3 +5,6 @@ target/
 *.iml
 
 src/main/resources/application.properties
+
+SEQUENCE_GENERATION.md
+MESSAGE_DELIVERY_ARCHITECTURE.md
