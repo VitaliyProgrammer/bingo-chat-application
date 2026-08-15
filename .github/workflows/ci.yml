@@ -22,5 +22,8 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      - name: Prepare local application.properties
+        run: cp src/main/resources/application-example.properties src/main/resources/application.properties
+
       - name: Build, checkstyle, unit tests, integration tests
         run: mvn -B verify
