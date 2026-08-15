@@ -1,11 +1,11 @@
-# Architecture — how it works under the hood
+# 🏗 Architecture — how it works under the hood
 
 This document walks through the parts of the system that aren't obvious from the
 API surface alone: how authentication differs between REST and WebSocket, how a
 message actually gets from one client's screen to another's, and why certain
 decisions (Outbox pattern, pessimistic locking, distributed locks) exist at all.
 
-## 1. Component overview
+## 🧩 1. Component overview
 
 ```mermaid
 graph TD
@@ -38,7 +38,7 @@ graph TD
     WS -->|"push"| Client
 ```
 
-## 2. Authentication — two independent mechanisms
+## 🔐 2. Authentication — two independent mechanisms
 
 REST and WebSocket don't share an authentication path, because they don't share a
 threading model. `SecurityContextHolder` is backed by a `ThreadLocal` - it lives for
@@ -47,7 +47,7 @@ WebSocket connection are handled on a completely different thread pool
 (`clientInboundChannel`), where that `ThreadLocal` was never populated. So the two
 paths are deliberately separate components.
 
-### 2.1 REST (HTTP)
+### 🌐 2.1 REST (HTTP)
 
 ```mermaid
 sequenceDiagram
@@ -74,7 +74,7 @@ sequenceDiagram
 `@RestControllerAdvice` never gets a chance to handle anything it throws - the
 filter has to catch and translate its own exceptions into an HTTP response itself.
 
-### 2.2 WebSocket (STOMP)
+### 🔌 2.2 WebSocket (STOMP)
 
 ```mermaid
 sequenceDiagram
@@ -109,7 +109,7 @@ expires mid-session is not re-checked on every frame. It's covered by a test
 specifically so the behavior is visible and intentional rather than an unverified
 assumption.
 
-## 3. Sending a message: from click to the other screen
+## 📨 3. Sending a message: from click to the other screen
 
 ```mermaid
 sequenceDiagram
@@ -141,7 +141,7 @@ sequenceDiagram
     Note over TEL: if this fast path never fires (crash, broker unreachable),<br/>a @Scheduled poll every 10s picks up anything still unprocessed
 ```
 
-### Why Outbox instead of just publishing directly?
+### ❓ Why Outbox instead of just publishing directly?
 
 If `sendMessageInternal()` called `messagingTemplate.convertAndSend(...)` directly,
 and the process crashed - or RabbitMQ was briefly unreachable - right after the
@@ -160,7 +160,7 @@ acting, since RabbitMQ and the retry logic both guarantee **at-least-once**
 delivery, not exactly-once - a message can legitimately be redelivered, and nothing
 should be broadcast to a client twice because of it.
 
-## 4. Reliability & concurrency patterns, in one table
+## ⚙ 4. Reliability & concurrency patterns, in one table
 
 | Pattern | Where | What it prevents |
 |---|---|---|
@@ -172,7 +172,7 @@ should be broadcast to a client twice because of it.
 | Atomic rate-limit counter (Redis Lua script) | `RedisServiceImpl.isAllowed()` | A window where a crash between `INCR` and `EXPIRE` would leave a key permanently stuck past its limit |
 | TTL-based presence | `RedisService.setUserOnline()` | Needing an explicit disconnect signal - a client that vanishes (crash, dead network) just stops renewing the key and "goes offline" on its own |
 
-## 5. Data model
+## 🧱 5. Data model
 
 ```mermaid
 classDiagram

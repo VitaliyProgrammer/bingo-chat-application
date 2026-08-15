@@ -1,12 +1,18 @@
-# Bingo Chat Application — Overview
+# 📌 Bingo Chat Application — Overview
 
 ![Java](https://img.shields.io/badge/Java-17-orange?logo=openjdk&logoColor=white)
-![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.4-brightgreen?logo=springboot&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.4-6DB33F?logo=springboot&logoColor=white)
+![WebSocket](https://img.shields.io/badge/Spring%20WebSocket-6.1.5-009688?logo=websocket&logoColor=white)
+![Spring Security](https://img.shields.io/badge/Spring%20Security-6.2.3-FF69B4?logo=springsecurity&logoColor=white)
+![JWT](https://img.shields.io/badge/JJWT-0.11.5-000000?logo=jsonwebtokens&logoColor=white)
+![Hibernate](https://img.shields.io/badge/Hibernate-6.4.4-4B0082?logo=hibernate&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?logo=mysql&logoColor=white)
+![Liquibase](https://img.shields.io/badge/Liquibase-4.24.0-2962FF?logo=liquibase&logoColor=white)
 ![Redis](https://img.shields.io/badge/Redis-7-DC382D?logo=redis&logoColor=white)
 ![RabbitMQ](https://img.shields.io/badge/RabbitMQ-delayed--exchange-FF6600?logo=rabbitmq&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)
-![WebSocket](https://img.shields.io/badge/WebSocket-STOMP-black?logo=websocket&logoColor=white)
+
+## 📖 Introduction
 
 Backend for a real-time messenger, built with Spring Boot. It covers everything a
 production chat product needs on the backend side: authenticated real-time
@@ -18,9 +24,9 @@ This document is the entry point. For how it works internally, see
 [`02-architecture.md`](02-architecture.md). For the full technology list and the
 reasoning behind each choice, see [`03-tech-stack.md`](03-tech-stack.md).
 
-## What it does
+## 🧩 What it does
 
-**Messaging**
+**💬 Messaging**
 - Private and group chats, with group ownership and transferable ownership
 - Real-time delivery over WebSocket/STOMP, with `SENT → DELIVERED → READ` status tracking
 - Message editing, pinning, replies, and emoji reactions (capped per message in group chats)
@@ -28,19 +34,19 @@ reasoning behind each choice, see [`03-tech-stack.md`](03-tech-stack.md).
 - Message reminders (delayed, delivered at a specific future time)
 - Web Push notifications for participants who are offline when a message arrives
 
-**Moderation & safety**
+**🛡 Moderation & safety**
 - User-to-user blocking, enforced on both private messaging and group invites
 - Admin-only group chat blocking/unblocking, protected by method-level authorization
 - Rate limiting on authentication endpoints and WebSocket subscriptions/sends, to blunt
   brute-force and flood attempts
 
-**Reliability**
+**🔁 Reliability**
 - Outbox pattern: a message is never "sent" from the database's point of view without a
   guaranteed, at-least-once delivery event, even if the app crashes right after the commit
 - A scheduled fallback re-processes anything the fast path missed - no event is silently lost
 - Idempotency guards at every consumer, so a redelivered event never gets broadcast twice
 
-## Quick start
+## 🛠 Quick start
 
 ```bash
 docker-compose up --build
@@ -50,11 +56,14 @@ This brings up MySQL, Redis, RabbitMQ (with the delayed-message plugin) and the
 application itself, in the right order, waiting on each dependency's healthcheck.
 
 Once it's up:
-- API docs: `http://localhost:8080/swagger-ui/index.html`
-- Health check: `http://localhost:8080/actuator/health`
-- A minimal STOMP test page for manually poking the WebSocket API: `http://localhost:8080/stomp-test.html`
 
-## Testing
+| What | Where |
+|---|---|
+| 📘 API docs (Swagger UI) | `http://localhost:8080/swagger-ui/index.html` |
+| ❤️ Health check | `http://localhost:8080/actuator/health` |
+| 🔌 STOMP test page | `http://localhost:8080/stomp-test.html` |
+
+## 🧪 Testing
 
 The project separates fast feedback from slow, high-confidence checks:
 
