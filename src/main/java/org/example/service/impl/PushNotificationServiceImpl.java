@@ -7,6 +7,7 @@ import java.security.GeneralSecurityException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import nl.martijndwars.webpush.Encoding;
@@ -45,7 +46,7 @@ public class PushNotificationServiceImpl implements PushNotificationService {
 
     private final ObjectMapper objectMapper;
 
-    private final PushService pushService;
+    private final Supplier<PushService> pushServiceSupplier;
 
     @Override
     public void sendToUser(Long userId, MessageResponseDto message) {
@@ -106,7 +107,8 @@ public class PushNotificationServiceImpl implements PushNotificationService {
                     payload
             );
 
-            HttpResponse response = pushService.send(notification, Encoding.AES128GCM);
+            HttpResponse response = pushServiceSupplier.get()
+                    .send(notification, Encoding.AES128GCM);
             int statusCode = response.getStatusLine().getStatusCode();
 
             if (statusCode == STATUS_NOT_FOUND || statusCode == STATUS_GONE) {

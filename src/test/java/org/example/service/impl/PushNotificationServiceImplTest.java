@@ -1,6 +1,7 @@
 package org.example.service.impl;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -11,6 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.security.Security;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 import nl.martijndwars.webpush.Encoding;
 import nl.martijndwars.webpush.Notification;
 import nl.martijndwars.webpush.PushService;
@@ -26,6 +28,7 @@ import org.example.repository.ChatRepository;
 import org.example.repository.PushSubscriptionRepository;
 import org.example.repository.UserRepository;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -59,8 +62,16 @@ class PushNotificationServiceImplTest {
     @Mock
     private PushService pushService;
 
+    @Mock
+    private Supplier<PushService> pushServiceSupplier;
+
     @InjectMocks
     private PushNotificationServiceImpl pushNotificationService;
+
+    @BeforeEach
+    void setUp() {
+        lenient().when(pushServiceSupplier.get()).thenReturn(pushService);
+    }
 
     @Test
     void sendToUser_noSubscriptions_doesNotCallPushService() throws Exception {
