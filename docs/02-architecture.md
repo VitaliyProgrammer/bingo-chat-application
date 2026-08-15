@@ -175,47 +175,61 @@ should be broadcast to a client twice because of it.
 ## 5. Data model
 
 ```mermaid
-erDiagram
-    USER ||--o{ MESSAGE : sends
-    USER }o--o{ ROLE : has
-    USER }o--o{ CHAT : "participates in"
-    CHAT ||--o{ MESSAGE : contains
-    MESSAGE ||--o{ MESSAGE_REACTION : has
-    MESSAGE ||--o| MESSAGE : "replies to"
-    USER ||--o{ MESSAGE_REACTION : reacts
-    USER ||--o{ BLOCKED_USER : blocks
-
-    USER {
-        Long id PK
+classDiagram
+    class User {
+        Long id
         String email
         String nickname
+        String password
         String avatarUrl
+        LocalDateTime lastInOnline
     }
-    CHAT {
-        Long id PK
+    class Role {
+        Long id
+        RoleName roleName
+    }
+    class Chat {
+        Long id
         ChatType chatType
         Long ownerId
         Long lastMessageSequence
         String lastMessageText
     }
-    MESSAGE {
-        Long id PK
-        Long chat_id FK
-        Long sender_id FK
+    class Message {
+        Long id
         String content
         MessageStatus status
         Long sequence
         Boolean isPinned
+        LocalDateTime reminderAt
     }
-    MESSAGE_REACTION {
-        Long id PK
-        Long message_id FK
-        Long user_id FK
+    class MessageReaction {
+        Long id
         String emoji
     }
-    BLOCKED_USER {
-        Long id PK
-        Long blocker_id FK
-        Long blocked_id FK
+    class BlockedUser {
+        Long id
+        LocalDateTime createdAt
     }
+    class OutboxEvent {
+        Long id
+        String eventType
+        String payload
+        Boolean processed
+        Integer retryCount
+    }
+
+    User "0..*" --> "0..*" Role : has
+    User "1" --> "0..*" Message : sends
+    User "0..*" --> "0..*" Chat : "participates in"
+    Chat "1" --> "0..*" Message : contains
+    Message "1" --> "0..*" MessageReaction : has
+    Message "0..1" --> "0..1" Message : "replies to"
+    User "1" --> "0..*" MessageReaction : reacts
+    User "1" --> "0..*" BlockedUser : blocks
 ```
+
+`OutboxEvent` is deliberately not linked to the other entities above - it's not a
+domain relationship, it's an infrastructure record (event type, JSON payload,
+processing state) written in the same transaction as whatever business change
+triggered it. See section 3 for how it's actually used.
