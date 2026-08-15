@@ -1,5 +1,6 @@
 # 💬 Bingo Chat Application — Spring Boot Back-End
 
+[![CI](https://github.com/VitaliyProgrammer/bingo-chat-application/actions/workflows/ci.yml/badge.svg)](https://github.com/VitaliyProgrammer/bingo-chat-application/actions/workflows/ci.yml)
 ![Java](https://img.shields.io/badge/Java-17-orange?logo=openjdk&logoColor=white)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.4-6DB33F?logo=springboot&logoColor=white)
 ![WebSocket](https://img.shields.io/badge/Spring%20WebSocket-6.1.5-009688?logo=websocket&logoColor=white)

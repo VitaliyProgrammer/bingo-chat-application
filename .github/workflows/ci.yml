@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, bingo-chat-application-branch ]
+  pull_request:
+    branches: [ main, bingo-chat-application-branch ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Build, checkstyle, unit tests, integration tests
+        run: mvn -B verify
