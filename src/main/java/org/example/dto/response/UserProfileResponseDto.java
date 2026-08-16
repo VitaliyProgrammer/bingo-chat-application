@@ -1,5 +1,7 @@
 package org.example.dto.response;
 
+import org.example.entity.type.Language;
+
 public record UserProfileResponseDto(
         Long id,
         String firstName,
@@ -8,6 +10,7 @@ public record UserProfileResponseDto(
         String email,
         boolean isOnline,
         String avatarUrl,
-        int unreadFeedbackReplies
+        int unreadFeedbackReplies,
+        Language preferredLanguage
 ) {
 }

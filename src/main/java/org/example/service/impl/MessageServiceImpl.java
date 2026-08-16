@@ -47,7 +47,6 @@ import org.example.security.CurrentUserProvider;
 import org.example.service.MessageService;
 import org.example.service.RedisService;
 import org.springframework.context.MessageSource;
-import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -478,7 +477,7 @@ public class MessageServiceImpl implements MessageService {
 
     private void validateChatSendable(Chat chat, User sender) {
 
-        Locale locale = LocaleContextHolder.getLocale();
+        Locale locale = currentUserProvider.getCurrentLocale();
 
         if (blockedGroupRepository.existsByChat_IdAndUnblockedAtIsNull(chat.getId())) {
             throw new ForbiddenActionException(messageSource.getMessage(
@@ -526,7 +525,7 @@ public class MessageServiceImpl implements MessageService {
                     "reaction.limit.exceeded", null,
                     "Reaction limit for this message reached - join one of the "
                             + "existing reactions!",
-                    LocaleContextHolder.getLocale()));
+                    currentUserProvider.getCurrentLocale()));
         }
     }
 

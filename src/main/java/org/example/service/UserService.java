@@ -3,6 +3,7 @@ package org.example.service;
 import java.util.List;
 import org.example.dto.response.UserProfileResponseDto;
 import org.example.dto.response.UserSearchResponseDto;
+import org.example.entity.type.Language;
 import org.springframework.web.multipart.MultipartFile;
 
 public interface UserService {
@@ -20,4 +21,6 @@ public interface UserService {
     void unblockUser(Long userId);
 
     List<UserSearchResponseDto> getBlockedUsers();
+
+    void updateLanguage(Language language);
 }

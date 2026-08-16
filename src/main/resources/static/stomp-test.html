@@ -219,6 +219,7 @@
             <div><strong>Name:</strong> <span id="profName">-</span></div>
             <div><strong>Login:</strong> <span id="profLogin">-</span></div>
             <div><strong>Status:</strong> <span id="profStatus">-</span></div>
+            <div><strong>Language:</strong> <span id="profLanguage">-</span></div>
         </div>
         <div class="grid-buttons">
             <button class="danger" onclick="deleteAvatar()">Delete Avatar</button>
@@ -227,6 +228,15 @@
         <div style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
             <input type="file" id="avatarFile" accept="image/*" style="font-size: 11px;">
             <button class="success" style="width: 100%; margin-top: 5px;" onclick="uploadAvatar()">Upload Avatar</button>
+        </div>
+        <div style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
+            <h4>Language</h4>
+            <select id="languageSelect">
+                <option value="EN">EN - English</option>
+                <option value="RU">RU - Русский</option>
+                <option value="UK">UK - Українська</option>
+            </select>
+            <button class="success" style="width: 100%; margin-top: 5px;" onclick="updateLanguage()">Save Language</button>
         </div>
     </div>
 
@@ -641,7 +651,19 @@
             statusEl.style.fontSize = '10px';
             statusEl.style.fontWeight = 'bold';
             statusEl.style.display = 'inline-block';
+
+            document.getElementById('profLanguage').innerText = profile.preferredLanguage || 'EN';
+            document.getElementById('languageSelect').value = profile.preferredLanguage || 'EN';
         }
+    }
+
+    async function updateLanguage() {
+        const language = document.getElementById('languageSelect').value;
+        await apiFetch('/users/me/language', {
+            method: 'PATCH',
+            body: JSON.stringify({ language })
+        });
+        await getProfile();
     }
 
     function searchUser() {

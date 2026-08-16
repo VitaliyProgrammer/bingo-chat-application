@@ -82,6 +82,7 @@ class ChatServiceImplTest {
     void setUp() {
         currentUser = user(CURRENT_USER_ID);
         lenient().when(currentUserProvider.getAuthenticatedUser()).thenReturn(currentUser);
+        lenient().when(currentUserProvider.getCurrentLocale()).thenReturn(Locale.ENGLISH);
     }
 
     @Test

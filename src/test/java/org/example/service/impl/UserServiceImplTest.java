@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -16,6 +17,7 @@ import java.util.Optional;
 import org.example.dto.response.UserSearchResponseDto;
 import org.example.entity.BlockedUser;
 import org.example.entity.User;
+import org.example.entity.type.Language;
 import org.example.exception.BadRequestException;
 import org.example.exception.UserNotFoundException;
 import org.example.mapper.UserMapper;
@@ -61,6 +63,7 @@ class UserServiceImplTest {
     void setUp() {
         currentUser = user(CURRENT_USER_ID);
         when(currentUserProvider.getAuthenticatedUser()).thenReturn(currentUser);
+        lenient().when(currentUserProvider.getCurrentLocale()).thenReturn(Locale.ENGLISH);
     }
 
     @Test
@@ -167,6 +170,16 @@ class UserServiceImplTest {
         List<UserSearchResponseDto> result = userService.getBlockedUsers();
 
         assertThat(result).containsExactly(expectedDto);
+    }
+
+    @Test
+    void updateLanguage_savesNewPreferredLanguageOnCurrentUser() {
+
+        userService.updateLanguage(Language.UK);
+
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(captor.capture());
+        assertThat(captor.getValue().getPreferredLanguage()).isEqualTo(Language.UK);
     }
 
     private User user(Long id) {

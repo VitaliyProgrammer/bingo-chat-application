@@ -1,6 +1,7 @@
 package org.example.security;
 
 import java.security.Principal;
+import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import org.example.entity.User;
 import org.example.exception.AuthenticationException;
@@ -36,5 +37,9 @@ public class CurrentUserProvider {
 
         String actualType = principal == null ? "null" : principal.getClass().getName();
         throw new AuthenticationException("Unsupported principal type: " + actualType);
+    }
+
+    public Locale getCurrentLocale() {
+        return getAuthenticatedUser().getPreferredLanguage().toLocale();
     }
 }

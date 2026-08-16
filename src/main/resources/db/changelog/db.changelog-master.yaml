@@ -39,3 +39,5 @@ databaseChangeLog:
       file: db/changelog/changes/021-add-blocked-groups-unblock-reason.yaml
   - include:
       file: db/changelog/changes/022-create-push-subscriptions-table.yaml
+  - include:
+      file: db/changelog/changes/023-add-user-preferred-language.yaml

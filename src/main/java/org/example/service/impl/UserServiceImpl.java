@@ -7,6 +7,7 @@ import org.example.dto.response.UserProfileResponseDto;
 import org.example.dto.response.UserSearchResponseDto;
 import org.example.entity.BlockedUser;
 import org.example.entity.User;
+import org.example.entity.type.Language;
 import org.example.exception.BadRequestException;
 import org.example.exception.UserNotFoundException;
 import org.example.mapper.UserMapper;
@@ -17,7 +18,6 @@ import org.example.security.CurrentUserProvider;
 import org.example.service.FileService;
 import org.example.service.UserService;
 import org.springframework.context.MessageSource;
-import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -93,7 +93,7 @@ public class UserServiceImpl implements UserService {
     public void blockUser(Long userId) {
 
         User currentUser = currentUserProvider.getAuthenticatedUser();
-        Locale locale = LocaleContextHolder.getLocale();
+        Locale locale = currentUserProvider.getCurrentLocale();
 
         if (currentUser.getId().equals(userId)) {
             throw new BadRequestException(messageSource.getMessage(
@@ -121,7 +121,7 @@ public class UserServiceImpl implements UserService {
     public void unblockUser(Long userId) {
 
         User currentUser = currentUserProvider.getAuthenticatedUser();
-        Locale locale = LocaleContextHolder.getLocale();
+        Locale locale = currentUserProvider.getCurrentLocale();
 
         BlockedUser blockedUser = blockedUserRepository
                 .findByBlocker_IdAndBlocked_Id(currentUser.getId(), userId)
@@ -140,5 +140,14 @@ public class UserServiceImpl implements UserService {
         return blockedUserRepository.findAllByBlockerId(currentUser.getId()).stream()
                 .map(blockedUser -> userMapper.toSearchDto(blockedUser.getBlocked()))
                 .toList();
+    }
+
+    @Override
+    @Transactional
+    public void updateLanguage(Language language) {
+
+        User currentUser = currentUserProvider.getAuthenticatedUser();
+        currentUser.setPreferredLanguage(language);
+        userRepository.save(currentUser);
     }
 }

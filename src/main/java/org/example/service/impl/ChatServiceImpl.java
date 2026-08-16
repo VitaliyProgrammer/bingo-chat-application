@@ -34,7 +34,6 @@ import org.example.service.FileService;
 import org.example.service.RedisService;
 import org.example.service.presence.PresenceTimeFormatter;
 import org.springframework.context.MessageSource;
-import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -550,7 +549,7 @@ public class ChatServiceImpl implements ChatService {
     }
 
     private Locale currentLocale() {
-        return LocaleContextHolder.getLocale();
+        return currentUserProvider.getCurrentLocale();
     }
 
     private Chat getChatOrThrow(Long chatId) {

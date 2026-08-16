@@ -96,6 +96,7 @@ MessageServiceImplTest {
         message = message(MESSAGE_ID, groupChat);
 
         when(currentUserProvider.getAuthenticatedUser()).thenReturn(currentUser);
+        lenient().when(currentUserProvider.getCurrentLocale()).thenReturn(Locale.ENGLISH);
         lenient().when(messageRepository.findById(MESSAGE_ID)).thenReturn(Optional.of(message));
         when(chatRepository.existsByIdAndParticipants_Id(CHAT_ID, CURRENT_USER_ID)).thenReturn(true);
     }
