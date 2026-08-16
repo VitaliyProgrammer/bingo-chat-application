@@ -7,6 +7,4 @@ public interface PresenceService {
     void heartbeat(Principal principal);
 
     void updateLastSeen(Principal principal);
-
-    void disconnect();
 }

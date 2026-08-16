@@ -33,9 +33,9 @@ public class WebSocketController {
     }
 
     @MessageMapping("/chat.read")
-    public void readChatAsRead(ChatAsReadRequestDto request) {
+    public void readChatAsRead(ChatAsReadRequestDto request, Principal principal) {
 
-        messageService.markChatAsRead(request.chatId());
+        messageService.markChatAsRead(request.chatId(), principal);
     }
 
     @MessageMapping("/chat.ack")

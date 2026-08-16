@@ -207,8 +207,16 @@ public class MessageServiceImpl implements MessageService {
     @Override
     @Transactional
     public void markChatAsRead(Long chatId) {
+        markChatAsReadInternal(chatId, currentUserProvider.getAuthenticatedUser());
+    }
 
-        User currentUser = currentUserProvider.getAuthenticatedUser();
+    @Override
+    @Transactional
+    public void markChatAsRead(Long chatId, Principal principal) {
+        markChatAsReadInternal(chatId, currentUserProvider.getAuthenticatedUser(principal));
+    }
+
+    private void markChatAsReadInternal(Long chatId, User currentUser) {
 
         int allMessagesAsRead =
                 messageRepository.markAllMessagesInChatAsRead(chatId, currentUser.getId());

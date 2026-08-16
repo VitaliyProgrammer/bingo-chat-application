@@ -33,14 +33,4 @@ public class PresenceServiceImpl implements PresenceService {
 
         redisService.setLastSeen(userId);
     }
-
-    @Override
-    public void disconnect() {
-
-        Long userId = currentUserProvider.getAuthenticatedUser().getId();
-
-        if (redisService.getSessions(userId) <= 0) {
-            redisService.setUserOffline(userId);
-        }
-    }
 }

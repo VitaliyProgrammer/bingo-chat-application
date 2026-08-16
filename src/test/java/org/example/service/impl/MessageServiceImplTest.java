@@ -11,6 +11,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.security.Principal;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -95,10 +96,11 @@ MessageServiceImplTest {
         groupChat = chat(CHAT_ID, ChatType.GROUP);
         message = message(MESSAGE_ID, groupChat);
 
-        when(currentUserProvider.getAuthenticatedUser()).thenReturn(currentUser);
+        lenient().when(currentUserProvider.getAuthenticatedUser()).thenReturn(currentUser);
         lenient().when(currentUserProvider.getCurrentLocale()).thenReturn(Locale.ENGLISH);
         lenient().when(messageRepository.findById(MESSAGE_ID)).thenReturn(Optional.of(message));
-        when(chatRepository.existsByIdAndParticipants_Id(CHAT_ID, CURRENT_USER_ID)).thenReturn(true);
+        lenient().when(chatRepository.existsByIdAndParticipants_Id(CHAT_ID, CURRENT_USER_ID))
+                .thenReturn(true);
     }
 
     @Test
@@ -213,6 +215,32 @@ MessageServiceImplTest {
                 .isInstanceOf(ForbiddenActionException.class);
 
         verify(messageRepository, never()).save(any());
+    }
+
+    @Test
+    void markChatAsRead_restCall_usesSecurityContextAuthentication() {
+
+        when(messageRepository.markAllMessagesInChatAsRead(CHAT_ID, CURRENT_USER_ID))
+                .thenReturn(0);
+
+        messageService.markChatAsRead(CHAT_ID);
+
+        verify(currentUserProvider).getAuthenticatedUser();
+        verify(currentUserProvider, never()).getAuthenticatedUser(any(Principal.class));
+    }
+
+    @Test
+    void markChatAsRead_webSocketCall_usesPrincipalNotSecurityContext() {
+
+        Principal principal = () -> CURRENT_USER_ID.toString();
+        when(currentUserProvider.getAuthenticatedUser(principal)).thenReturn(currentUser);
+        when(messageRepository.markAllMessagesInChatAsRead(CHAT_ID, CURRENT_USER_ID))
+                .thenReturn(0);
+
+        messageService.markChatAsRead(CHAT_ID, principal);
+
+        verify(currentUserProvider).getAuthenticatedUser(principal);
+        verify(currentUserProvider, never()).getAuthenticatedUser();
     }
 
     private List<MessageReaction> reactionsFromOtherUsers(int distinctTypesCount) {

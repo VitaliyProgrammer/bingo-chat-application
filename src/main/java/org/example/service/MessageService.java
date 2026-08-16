@@ -23,6 +23,8 @@ public interface MessageService {
 
     void markChatAsRead(Long chatId);
 
+    void markChatAsRead(Long chatId, Principal principal);
+
     void deleteMessage(Long messageId);
 
     MessagePageResponseDto getChatMessages(Long chatId, int page, int size);
