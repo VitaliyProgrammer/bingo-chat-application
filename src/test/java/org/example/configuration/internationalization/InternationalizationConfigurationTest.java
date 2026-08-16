@@ -2,6 +2,12 @@ package org.example.configuration.internationalization;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.Properties;
+import java.util.Set;
 import org.example.entity.type.Language;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.MessageSource;
@@ -32,9 +38,36 @@ class InternationalizationConfigurationTest {
     }
 
     @Test
-    void getMessage_keyMissingFromLocaleSpecificBundle_fallsBackToDefaultBundle() {
+    void getMessage_ukrainianLocale_translatesValidationMessage() {
         String message = messageSource.getMessage("email.notBlank", null, Language.UK.toLocale());
 
-        assertThat(message).isEqualTo("Email must not be empty!");
+        assertThat(message).isEqualTo("Email не може бути порожнім!");
+    }
+
+    @Test
+    void getMessage_russianLocale_translatesValidationMessage() {
+        String message = messageSource.getMessage("email.notBlank", null, Language.RU.toLocale());
+
+        assertThat(message).isEqualTo("Email не может быть пустым!");
+    }
+
+    @Test
+    void allLocaleBundles_haveExactlyTheSameKeysAsTheDefaultBundle() throws IOException {
+        Set<String> defaultKeys = loadKeys("messages.properties");
+        Set<String> ukKeys = loadKeys("messages_uk.properties");
+        Set<String> ruKeys = loadKeys("messages_ru.properties");
+
+        assertThat(ukKeys).containsExactlyInAnyOrderElementsOf(defaultKeys);
+        assertThat(ruKeys).containsExactlyInAnyOrderElementsOf(defaultKeys);
+    }
+
+    private Set<String> loadKeys(String resourceName) throws IOException {
+        Properties properties = new Properties();
+
+        try (InputStream stream = getClass().getClassLoader().getResourceAsStream(resourceName)) {
+            properties.load(new InputStreamReader(stream, StandardCharsets.UTF_8));
+        }
+
+        return properties.stringPropertyNames();
     }
 }
