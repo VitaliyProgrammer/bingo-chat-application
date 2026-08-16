@@ -5,7 +5,6 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -477,12 +476,11 @@ public class MessageServiceImpl implements MessageService {
 
     private void validateChatSendable(Chat chat, User sender) {
 
-        Locale locale = currentUserProvider.getCurrentLocale();
-
         if (blockedGroupRepository.existsByChat_IdAndUnblockedAtIsNull(chat.getId())) {
             throw new ForbiddenActionException(messageSource.getMessage(
                     "chat.blockedBySupport", null,
-                    "This group has been blocked by support and can't be modified!", locale));
+                    "This group has been blocked by support and can't be modified!",
+                    sender.getPreferredLanguage().toLocale()));
         }
 
         if (chat.getChatType() == ChatType.PRIVATE) {
@@ -497,7 +495,7 @@ public class MessageServiceImpl implements MessageService {
                 throw new ForbiddenActionException(messageSource.getMessage(
                         "user.chatBlocked", null,
                         "You can't message this user - one of you has blocked the other!",
-                        locale));
+                        sender.getPreferredLanguage().toLocale()));
             }
         }
     }
