@@ -664,6 +664,8 @@
             body: JSON.stringify({ language })
         });
         await getProfile();
+
+        await apiFetch('/users/999999999/block', { method: 'DELETE' });
     }
 
     function searchUser() {
