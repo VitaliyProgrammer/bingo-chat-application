@@ -14,6 +14,6 @@ public final class MetricsNames {
     public static final String WEB_SOCKET_ERROR = "websocket.error";
     public static final String RATE_LIMIT_EXCEEDED = "rate_limit.exceeded";
 
-    public MetricsNames() {
+    private MetricsNames() {
     }
 }
