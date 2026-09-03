@@ -1,0 +1,158 @@
+package org.example.configuration.listener;
+
+import java.time.Duration;
+import java.util.Map;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.example.dto.response.MessageResponseDto;
+import org.example.dto.response.UnreadMessagesResponseDto;
+import org.example.event.MessageDeliveredEvent;
+import org.example.event.MessageEditedEvent;
+import org.example.event.MessagePinnedEvent;
+import org.example.event.MessageReactedEvent;
+import org.example.event.MessageReadEvent;
+import org.example.event.MessageSentEvent;
+import org.example.service.PushNotificationService;
+import org.example.service.RedisService;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.stereotype.Component;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class MessageEventListener {
+
+    private static final Duration IDEMPOTENCY_TTL = Duration.ofMinutes(10);
+
+    private final RedisService redisService;
+    private final SimpMessagingTemplate messagingTemplate;
+    private final PushNotificationService pushNotificationService;
+
+    public void handleMessageSent(MessageSentEvent event) {
+
+        Long chatId = event.chatId();
+        MessageResponseDto message = event.message();
+
+        String key = "event:sent:" + message.id();
+
+        if (!redisService.setIfAbsent(key, "1", IDEMPOTENCY_TTL)) {
+            log.debug("Duplicate SENT event skipped: {}", key);
+            return;
+        }
+
+        log.debug("Event: messages sent -> chatId={}, messageId={}", chatId, message.id());
+
+        messagingTemplate.convertAndSend("/topic/chat/" + event.chatId(), message);
+
+        messagingTemplate.convertAndSendToUser(
+                message.senderId().toString(),
+                "/queue/delivery",
+                message
+        );
+
+        event.participantOnline().forEach((userId, isOnline) -> {
+
+            if (userId.equals(message.senderId())) {
+                return;
+            }
+            if (!isOnline) {
+                int unreadMessages = redisService.getUnreadMessages(userId, message.chatId());
+
+                messagingTemplate.convertAndSendToUser(
+                        userId.toString(),
+                        "/queue/unread",
+                        new UnreadMessagesResponseDto(message.chatId(), unreadMessages)
+                );
+
+                pushNotificationService.sendToUser(userId, message);
+            }
+        });
+    }
+
+    public void handleMessageDelivered(MessageDeliveredEvent event) {
+
+        String key = "event:delivered" + event.messageId() + ":" + event.userId();
+
+        if (!redisService.setIfAbsent(key, "1", IDEMPOTENCY_TTL)) {
+            log.debug("Duplicate DELIVERED event skipped: {}", key);
+            return;
+        }
+
+        log.debug("Event: messages delivered -> messageId={}, chatId={}",
+                event.messageId(), event.chatId());
+
+        messagingTemplate.convertAndSend("/topic/chat/" + event.chatId(),
+                Map.of(
+                        "type", "DELIVERED",
+                        "messageId", event.messageId(),
+                        "chatId", event.chatId()
+                )
+        );
+    }
+
+    public void handleMessageRead(MessageReadEvent event) {
+
+        String key = "event:read:" + event.chatId() + ":" + event.userId();
+
+        if (!redisService.setIfAbsent(key, "1", IDEMPOTENCY_TTL)) {
+            log.debug("Duplicate READ event skipped: {}", key);
+            return;
+        }
+
+        log.debug("Event: messages read -> chatId={}, userId={}",
+                event.chatId(), event.userId());
+
+        messagingTemplate.convertAndSend(
+                "/topic/chat/" + event.chatId(),
+                Map.of("type", "READ",
+                        "chatId", event.chatId(),
+                        "userId", event.userId()
+                )
+        );
+    }
+
+    public void handleMessageEdited(MessageEditedEvent event) {
+
+        String key = "event:edited:" + event.message().id() + ":" + event.message().editedAt();
+
+        if (!redisService.setIfAbsent(key, "1", IDEMPOTENCY_TTL)) {
+            log.debug("Duplicate EDITED event skipped: {}", key);
+            return;
+        }
+
+        log.debug("Event: message edited -> chatId={}, messageId={}",
+                event.chatId(), event.message().id());
+
+        messagingTemplate.convertAndSend("/topic/chat/" + event.chatId(), event.message());
+    }
+
+    public void handleMessagePinned(MessagePinnedEvent event) {
+
+        String key = "event:pinned:" + event.message().id();
+
+        if (!redisService.setIfAbsent(key, "1", IDEMPOTENCY_TTL)) {
+            log.debug("Duplicate PINNED event skipped: {}", key);
+            return;
+        }
+
+        log.debug("Event: message pinned -> chatId={}, messageId={}",
+                event.chatId(), event.message().id());
+
+        messagingTemplate.convertAndSend("/topic/chat/" + event.chatId(), event.message());
+    }
+
+    public void handleMessageReacted(MessageReactedEvent event) {
+
+        String key = "event:reacted:" + event.message().id() + ":" + event.message().reactions();
+
+        if (!redisService.setIfAbsent(key, "1", IDEMPOTENCY_TTL)) {
+            log.debug("Duplicate REACTED event skipped: {}", key);
+            return;
+        }
+
+        log.debug("Event: message reacted -> chatId={}, messageId={}",
+                event.chatId(), event.message().id());
+
+        messagingTemplate.convertAndSend("/topic/chat/" + event.chatId(), event.message());
+    }
+}

@@ -1,0 +1,19 @@
+databaseChangeLog:
+  - changeSet:
+      id: group-privacy-and-avatar
+      author: vitaliy
+      changes:
+
+        - addColumn:
+            tableName: chats
+            columns:
+              - column:
+                  name: is_private
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: avatar_url
+                  type: VARCHAR(255)

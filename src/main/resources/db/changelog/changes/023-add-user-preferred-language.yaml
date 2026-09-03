@@ -1,0 +1,15 @@
+databaseChangeLog:
+  - changeSet:
+      id: add-user-preferred-language
+      author: vitaliy
+      changes:
+
+        - addColumn:
+            tableName: users
+            columns:
+              - column:
+                  name: preferred_language
+                  type: VARCHAR(2)
+                  defaultValue: EN
+                  constraints:
+                    nullable: false

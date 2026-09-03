@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Bingo Messenger - Ultimate STOMP/REST Test Client</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/twemoji@14.0.2/dist/twemoji.min.js" crossorigin="anonymous"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@1/index.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #f8f9fa;
+            --panel-bg: #ffffff;
+            --border-color: #dee2e6;
+            --primary-color: #007bff;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+            --text-color: #333;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar layout */
+        .sidebar {
+            width: 350px;
+            min-width: 350px;
+            background: var(--panel-bg);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            padding: 15px;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+        }
+
+        /* Main Content layout */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            gap: 15px;
+            min-width: 0;
+        }
+
+        h2, h3 { margin-top: 0; margin-bottom: 10px; border-bottom: 2px solid var(--primary-color); padding-bottom: 5px; }
+        h4 { margin: 10px 0 5px 0; color: #555; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; }
+
+        .section {
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 15px;
+        }
+
+        .grid-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            margin: 4px 0;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 13px;
+        }
+
+        textarea {
+            resize: vertical;
+            max-width: 100%;
+        }
+
+        button {
+            padding: 8px 12px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: 600;
+            transition: opacity 0.2s;
+            font-size: 13px;
+        }
+
+        button:hover { opacity: 0.8; }
+        button.secondary { background-color: #6c757d; }
+        button.success { background-color: var(--success-color); }
+        button.danger { background-color: var(--error-color); }
+
+        .log-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-height: 0;
+        }
+
+        .log-box {
+            flex: 1;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-y: auto;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-all;
+            border: 1px solid #333;
+        }
+
+        .log-entry {
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #333;
+        }
+
+        .log-time { color: #888; font-size: 0.8rem; margin-right: 10px; }
+        .log-method { font-weight: bold; margin-right: 5px; }
+        .log-url { color: #569cd6; }
+        .log-status-success { color: var(--success-color); font-weight: bold; }
+        .log-status-error { color: var(--error-color); font-weight: bold; }
+
+        /* JSON Syntax Highlighting */
+        .json-key { color: #9cdcfe; }
+        .json-string { color: #ce9178; }
+        .json-number { color: #b5cea8; }
+        .json-boolean { color: #569cd6; }
+        .json-null { color: #569cd6; }
+
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #ccc;
+            margin-right: 5px;
+        }
+
+        .status-online { background-color: var(--success-color); }
+        .status-offline { background-color: var(--error-color); }
+
+        .token-info {
+            font-size: 11px;
+            word-break: break-all;
+            background: #e9ecef;
+            padding: 5px;
+            border-radius: 4px;
+            margin-top: 5px;
+        }
+
+        .avatar-preview {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #eee;
+            margin-bottom: 10px;
+            display: block;
+            object-fit: cover;
+            border: 2px solid var(--primary-color);
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="sidebar">
+    <h2>Control Panel</h2>
+
+    <div class="section">
+        <h3>REGISTRATION</h3>
+        <input id="regEmail" placeholder="Email" value="user1@example.com">
+        <input id="regPass" placeholder="Password" type="password" value="password123">
+        <input id="regFirstName" placeholder="First Name" value="John">
+        <input id="regLastName" placeholder="Last Name" value="Doe">
+        <input id="regNickName" placeholder="Nickname" value="johndoe">
+        <button class="success" style="width: 100%" type="button" onclick="register()">Register</button>
+    </div>
+
+    <div class="section">
+        <h3>LOGIN</h3>
+        <input id="loginEmail" placeholder="Email" value="user1@example.com">
+        <input id="loginPass" placeholder="Password" type="password" value="password123">
+        <button style="width: 100%" type="button" onclick="login()">Login</button>
+        <div id="tokenDisplay" class="token-info">No token</div>
+    </div>
+
+    <div class="section">
+        <h3>USERS & AVATAR</h3>
+        <div id="avatarContainer" style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+            <img id="profileAvatar" class="avatar-preview" src="https://via.placeholder.com/50" alt="Avatar">
+            <div style="flex: 1;">
+                <button class="success" style="width: 100%; margin-bottom: 5px;" onclick="getProfile()">Get Profile</button>
+                <button class="secondary" style="width: 100%; font-size: 11px;" onclick="searchUser()">Search User</button>
+            </div>
+        </div>
+        <div id="profileInfo" style="font-size: 12px; margin-bottom: 10px; padding: 10px; background: #e9ecef; border: 1px solid var(--border-color); border-radius: 4px; display: none;">
+            <div><strong>Name:</strong> <span id="profName">-</span></div>
+            <div><strong>Login:</strong> <span id="profLogin">-</span></div>
+            <div><strong>Status:</strong> <span id="profStatus">-</span></div>
+            <div><strong>Language:</strong> <span id="profLanguage">-</span></div>
+        </div>
+        <div class="grid-buttons">
+            <button class="danger" onclick="deleteAvatar()">Delete Avatar</button>
+        </div>
+        <input id="searchNick" placeholder="Nickname to search...">
+        <div style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
+            <input type="file" id="avatarFile" accept="image/*" style="font-size: 11px;">
+            <button class="success" style="width: 100%; margin-top: 5px;" onclick="uploadAvatar()">Upload Avatar</button>
+        </div>
+        <div style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
+            <h4>Language</h4>
+            <select id="languageSelect">
+                <option value="EN">EN - English</option>
+                <option value="RU">RU - Русский</option>
+                <option value="UK">UK - Українська</option>
+            </select>
+            <button class="success" style="width: 100%; margin-top: 5px;" onclick="updateLanguage()">Save Language</button>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>PUSH NOTIFICATIONS</h3>
+        <div id="pushStatus" class="token-info">Push: disabled</div>
+        <div class="grid-buttons">
+            <button class="success" onclick="enablePush()">Enable Push</button>
+            <button class="danger" onclick="disablePush()">Disable Push</button>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>BLACKLIST</h3>
+        <input id="blacklistUserId" placeholder="User ID">
+        <div class="grid-buttons">
+            <button class="danger" onclick="blockUser()">Block User</button>
+            <button class="secondary" onclick="unblockUser()">Unblock User</button>
+        </div>
+        <button class="secondary" style="width: 100%; margin-top: 5px;" onclick="getBlacklist()">Get Blacklist</button>
+    </div>
+
+    <div class="section">
+        <h3>CHATS</h3>
+        <input id="targetUserId" placeholder="User ID">
+        <input id="targetChatId" placeholder="Chat ID">
+        <div class="grid-buttons">
+            <button class="secondary" onclick="createPrivateChat()">Create Private Chat</button>
+            <button class="secondary" onclick="openChat()">Open Chat</button>
+            <button class="secondary" onclick="getSidebar()">Get Sidebar</button>
+            <button class="secondary" onclick="getSelfChat()">Get Self Chat</button>
+        </div>
+        <div style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
+            <input id="groupName" placeholder="Group name">
+            <input id="groupParticipantIds" placeholder="Participant IDs, comma-separated (e.g. 2,3)">
+            <label style="display: flex; align-items: center; gap: 5px; font-size: 13px; margin: 6px 0;">
+                <input type="checkbox" id="groupIsPrivate" checked style="width: auto; margin: 0;">
+                Private group
+            </label>
+            <button class="success" style="width: 100%; margin-top: 5px;" onclick="createGroupChat()">Create Group Chat</button>
+        </div>
+        <div style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
+            <h4>Group Members (owner-only)</h4>
+            <input id="groupChatId" placeholder="Group Chat ID">
+            <input id="addParticipantIds" placeholder="User IDs to add, comma-separated">
+            <button class="success" style="width: 100%; margin-top: 5px;" onclick="addParticipants()">Add Participants</button>
+            <input id="removeParticipantId" placeholder="User ID to remove" style="margin-top: 5px;">
+            <button class="danger" style="width: 100%; margin-top: 5px;" onclick="removeParticipant()">Remove Participant</button>
+            <input id="newOwnerId" placeholder="New Owner ID" style="margin-top: 5px;">
+            <button class="success" style="width: 100%; margin-top: 5px;" onclick="transferOwnership()">Transfer Ownership</button>
+            <button class="danger" style="width: 100%; margin-top: 5px;" onclick="leaveGroupChat()">Leave Group</button>
+        </div>
+        <div style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
+            <h4>Group Avatar (owner-only, uses Group Chat ID above)</h4>
+            <img id="groupAvatarPreview" class="avatar-preview" style="display: none;" alt="Group avatar">
+            <input type="file" id="groupAvatarFile" accept="image/*" style="font-size: 11px;">
+            <div class="grid-buttons" style="margin-top: 5px;">
+                <button class="success" onclick="uploadGroupAvatar()">Upload Group Avatar</button>
+                <button class="danger" onclick="deleteGroupAvatar()">Delete Group Avatar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>WEBSOCKET</h3>
+        <div>
+            <span id="wsStatus" class="status-indicator"></span>
+            <span id="wsStatusText">Disconnected</span>
+        </div>
+        <div class="grid-buttons" style="margin-top:10px;">
+            <button class="success" onclick="connect()">Connect</button>
+            <button class="danger" onclick="disconnect()">Disconnect</button>
+        </div>
+        <input id="subChatId" placeholder="Chat ID to subscribe">
+        <button style="width:100%" onclick="subscribe()">Subscribe</button>
+    </div>
+
+    <div class="section">
+        <h3>PRESENCE (Testing)</h3>
+        <div class="grid-buttons">
+            <button class="secondary" onclick="presencePing()">Presence Ping</button>
+            <button class="secondary" onclick="updateLastSeen()">Update Last Seen</button>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>FEEDBACK</h3>
+        <input id="feedbackEmail" placeholder="Your email" value="user1@example.com">
+        <select id="feedbackType">
+            <option value="BUG">BUG</option>
+            <option value="SUGGESTION">SUGGESTION</option>
+            <option value="QUESTION">QUESTION</option>
+        </select>
+        <textarea id="feedbackText" placeholder="Your feedback..."></textarea>
+        <button style="width:100%" onclick="sendFeedback()">Send Feedback</button>
+        <button class="secondary" style="width:100%; margin-top:5px;" onclick="getMyFeedback()">My Feedback History</button>
+    </div>
+
+    <div class="section">
+        <h3>ADMIN - FEEDBACK</h3>
+        <div class="grid-buttons">
+            <input id="feedbackAdminPage" placeholder="Page" value="0">
+            <input id="feedbackAdminSize" placeholder="Size" value="20">
+        </div>
+        <button class="secondary" style="width:100%" onclick="getAllFeedbackAdmin()">Get All (Admin)</button>
+        <button class="secondary" style="width:100%; margin-top:5px;" onclick="getFeedbackStatsAdmin()">Get Stats (Admin)</button>
+
+        <div style="margin-top:10px; border-top:1px solid #eee; padding-top:10px;">
+            <input id="feedbackAdminId" placeholder="Feedback ID">
+            <select id="feedbackAdminStatus">
+                <option value="">-- keep status --</option>
+                <option value="NEW">NEW</option>
+                <option value="IN_PROGRESS">IN_PROGRESS</option>
+                <option value="RESOLVED">RESOLVED</option>
+                <option value="REJECTED">REJECTED</option>
+            </select>
+            <textarea id="feedbackAdminReply" placeholder="Admin reply..."></textarea>
+            <button class="success" style="width:100%" onclick="respondFeedbackAdmin()">Respond (Admin)</button>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>ADMIN - CHAT MODERATION</h3>
+        <input id="adminModChatId" placeholder="Chat ID">
+        <input id="adminModReason" placeholder="Reason (required for both actions)">
+        <div class="grid-buttons">
+            <button class="danger" onclick="blockGroupChatAdmin()">Block Group</button>
+            <button class="success" onclick="unblockGroupChatAdmin()">Unblock Group</button>
+        </div>
+    </div>
+</div>
+
+<div class="main-content">
+    <div style="display: flex; gap: 15px; flex: 1; min-height: 0;">
+        <div class="section" style="flex: 1; display: flex; flex-direction: column;">
+            <h3>MESSAGES & NOTES</h3>
+            <div style="display: grid; grid-template-columns: 100px 1fr auto auto; gap: 5px; position: relative;">
+                <input id="msgChatId" placeholder="ChatID">
+                <input id="msgContent" placeholder="Message content...">
+                <button class="secondary" onclick="toggleEmojiPicker()" title="Insert emoji">😀</button>
+                <button onclick="sendMessage()">Send</button>
+                <emoji-picker id="emojiPicker" data-source="https://cdn.jsdelivr.net/npm/emoji-picker-element-data@^1/en/emojibase/data.json" style="display:none; position:absolute; top: 100%; right: 0; z-index: 10;"></emoji-picker>
+            </div>
+            <div style="display: flex; gap: 5px; margin-top: 5px;">
+                <input id="msgId" placeholder="MsgID" style="width: 80px;">
+                <input id="replyId" placeholder="ReplyToID" style="width: 80px;">
+                <input id="reminderDate" type="datetime-local" style="flex:1">
+            </div>
+
+            <h4>Actions</h4>
+            <div class="grid-buttons">
+                <button class="secondary" onclick="replyMessage()">Reply</button>
+                <button class="secondary" onclick="editMessage()">Edit</button>
+                <button class="secondary" onclick="deleteMessage()">Delete</button>
+                <button class="secondary" onclick="pinMessage()">Pin</button>
+                <button class="secondary" onclick="markDelivered()">Delivered</button>
+                <button class="secondary" onclick="markRead()">Read</button>
+                <button class="secondary" onclick="sendAck()">ACK</button>
+                <button class="secondary" onclick="getHistory()">Get History</button>
+            </div>
+
+            <h4>Notes Specific</h4>
+            <div class="grid-buttons">
+                <button class="secondary" onclick="setReminder()">Reminder</button>
+                <button class="secondary" onclick="pinNote()">Pin Note</button>
+            </div>
+
+            <h4>Reactions (on MsgID above)</h4>
+            <div style="position: relative;">
+                <div class="grid-buttons" id="reactionButtons"></div>
+                <div style="display: flex; gap: 5px; margin-top: 5px;">
+                    <button class="secondary" style="flex: 1;" onclick="toggleReactionPicker()" title="Pick any emoji from the full set">➕ More reactions...</button>
+                    <button class="danger" style="flex: 1;" onclick="removeReaction()">Remove My Reaction</button>
+                </div>
+                <emoji-picker id="reactionPicker" data-source="https://cdn.jsdelivr.net/npm/emoji-picker-element-data@^1/en/emojibase/data.json" style="display:none; position:absolute; top: 100%; left: 0; z-index: 10;"></emoji-picker>
+            </div>
+        </div>
+
+        <div class="log-container" style="flex: 1.5;">
+            <div style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
+                <div class="log-header">
+                    <h3>REST LOG</h3>
+                    <button class="danger" style="padding: 2px 8px; font-size: 10px;" onclick="clearLog('restLog')">Clear</button>
+                </div>
+                <div id="restLog" class="log-box"></div>
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
+                <div class="log-header">
+                    <h3>WS LOG (Incoming)</h3>
+                    <button class="danger" style="padding: 2px 8px; font-size: 10px;" onclick="clearLog('wsLog')">Clear</button>
+                </div>
+                <div id="wsLog" class="log-box"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let stompClient = null;
+    let jwtToken = localStorage.getItem('jwt_token') || "";
+    let autoSubscribeChatId = null;
+
+    window.addEventListener('load', () => {
+        if (jwtToken) {
+            document.getElementById('tokenDisplay').innerText = "Token: " + jwtToken.substring(0, 20) + "...";
+            getProfile();
+        }
+
+        const chatMatch = location.hash.match(/^#chat-(\d+)$/);
+        if (chatMatch && jwtToken) {
+            const chatId = chatMatch[1];
+            document.getElementById('targetChatId').value = chatId;
+            document.getElementById('subChatId').value = chatId;
+            document.getElementById('msgChatId').value = chatId;
+            openChat();
+            getHistory();
+            autoSubscribeChatId = chatId;
+            connect();
+        }
+    });
+    const API_BASE = "http://localhost:8080";
+
+    if (jwtToken) {
+        const tokenDisplay = document.getElementById('tokenDisplay');
+        if (tokenDisplay) {
+            tokenDisplay.innerText = "Token: " + jwtToken.substring(0, 20) + "...";
+        }
+    }
+
+    function syntaxHighlight(json) {
+        if (typeof json !== 'string') {
+            json = JSON.stringify(json, undefined, 2);
+        }
+        json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+            let cls = 'json-number';
+            if (/^"/.test(match)) {
+                if (/:$/.test(match)) {
+                    cls = 'json-key';
+                } else {
+                    cls = 'json-string';
+                }
+            } else if (/true|false/.test(match)) {
+                cls = 'json-boolean';
+            } else if (/null/.test(match)) {
+                cls = 'json-null';
+            }
+            return '<span class="' + cls + '">' + match + '</span>';
+        });
+    }
+
+    function logEntry(boxId, method, url, status, data, isError = false) {
+        const box = document.getElementById(boxId);
+        const time = new Date().toLocaleTimeString();
+        const statusClass = isError ? 'log-status-error' : (status && status < 400 ? 'log-status-success' : 'log-status-error');
+
+        const entry = document.createElement('div');
+        entry.className = 'log-entry';
+
+        let html = `<span class="log-time">[${time}]</span>`;
+        if (method) html += `<span class="log-method">${method}</span>`;
+        if (url) html += `<span class="log-url">${url}</span>`;
+        if (status) html += ` <span class="${statusClass}">${status}</span>`;
+
+        if (data) {
+            html += `<pre style="margin: 10px 0 0 0;">${syntaxHighlight(data)}</pre>`;
+        }
+
+        entry.innerHTML = html;
+        if (window.twemoji) twemoji.parse(entry);
+        box.insertBefore(entry, box.firstChild);
+    }
+
+    function logRest(method, url, status, data, isError = false) {
+        logEntry("restLog", method, url, status, data, isError);
+    }
+
+    function logWs(msg, data = null, isError = false) {
+        const box = document.getElementById("wsLog");
+        const time = new Date().toLocaleTimeString();
+
+        const entry = document.createElement('div');
+        entry.className = 'log-entry';
+
+        const color = isError ? 'var(--error-color)' : '#da70d6';
+        let html = `<span class="log-time">[${time}]</span> <span style="color: ${color}; font-weight: bold;">${msg}</span>`;
+        if (data) {
+            html += `<pre style="margin: 10px 0 0 0;">${syntaxHighlight(data)}</pre>`;
+        }
+
+        entry.innerHTML = html;
+        if (window.twemoji) twemoji.parse(entry);
+        box.insertBefore(entry, box.firstChild);
+    }
+
+    function formatStompError(err) {
+        if (err && err.headers && err.headers.message) {
+            return err.headers.message + (err.body ? ` - ${err.body}` : '');
+        }
+        if (typeof err === 'string') return err;
+        return 'Connection lost or a STOMP ERROR frame was received (see browser console for the raw frame)';
+    }
+
+    function clearLog(id) {
+        document.getElementById(id).innerHTML = "";
+    }
+
+    async function apiFetch(path, options = {}) {
+        const url = API_BASE + path;
+        const method = options.method || 'GET';
+        const defaultHeaders = { 'Content-Type': 'application/json' };
+        
+        // Don't send token for registration or login
+        const isAuthPath = path.startsWith('/auth/');
+        if (jwtToken && !isAuthPath) {
+            defaultHeaders['Authorization'] = 'Bearer ' + jwtToken;
+        }
+
+        options.headers = { ...defaultHeaders, ...options.headers };
+
+        try {
+            const response = await fetch(url, options);
+            const status = response.status;
+            let result = null;
+            if (status !== 204) {
+                try {
+                    result = await response.json();
+                } catch(e) {
+                    result = { message: "Response is not JSON" };
+                }
+            }
+            logRest(method, path, status, result);
+            return result;
+        } catch (error) {
+            logRest(method, path, "ERROR", error.message, true);
+            throw error;
+        }
+    }
+
+    async function login() {
+        console.log("Login button clicked");
+        const loginEmail = document.getElementById('loginEmail');
+        const loginPass = document.getElementById('loginPass');
+        
+        if (!loginEmail || !loginPass) {
+            console.error("Login fields not found!");
+            return;
+        }
+
+        const body = {
+            email: loginEmail.value,
+            password: loginPass.value
+        };
+        
+        console.log("Fetching authentication...");
+        const data = await apiFetch('/auth/authentication', { method: 'POST', body: JSON.stringify(body) });
+        
+        if (data && data.token) {
+            jwtToken = data.token;
+            localStorage.setItem('jwt_token', jwtToken);
+            const tokenDisplay = document.getElementById('tokenDisplay');
+            if (tokenDisplay) {
+                tokenDisplay.innerText = "Token: " + jwtToken.substring(0, 20) + "...";
+            }
+            await getProfile();
+        } else {
+            console.warn("Login failed or no token received", data);
+        }
+    }
+
+    async function register() {
+        const body = {
+            email: document.getElementById('regEmail').value,
+            password: document.getElementById('regPass').value,
+            repeatPassword: document.getElementById('regPass').value,
+            firstName: document.getElementById('regFirstName').value,
+            lastName: document.getElementById('regLastName').value,
+            nickName: document.getElementById('regNickName').value
+        };
+        const data = await apiFetch('/auth/registration', { method: 'POST', body: JSON.stringify(body) });
+        if (data && !data.error) {
+            alert("Registration successful! Please login.");
+        }
+    }
+
+
+    async function getProfile() {
+        const profile = await apiFetch('/users/me');
+        if (profile) {
+            const avatarImg = document.getElementById('profileAvatar');
+            if (profile.avatarUrl) {
+                avatarImg.src = API_BASE + '/uploads/' + profile.avatarUrl;
+                avatarImg.title = profile.avatarUrl;
+            } else {
+                avatarImg.src = 'https://via.placeholder.com/50';
+                avatarImg.title = 'No avatar';
+            }
+
+            const infoBox = document.getElementById('profileInfo');
+            infoBox.style.display = 'block';
+            
+            const fullName = [profile.firstName, profile.lastName].filter(Boolean).join(' ') || profile.nickName;
+            document.getElementById('profName').innerText = fullName;
+            document.getElementById('profLogin').innerText = profile.email || profile.nickName;
+            
+            const statusEl = document.getElementById('profStatus');
+            statusEl.innerText = profile.isOnline ? 'Online' : 'Offline';
+            statusEl.className = profile.isOnline ? 'status-online' : 'status-offline';
+            statusEl.style.padding = '2px 6px';
+            statusEl.style.borderRadius = '4px';
+            statusEl.style.color = 'white';
+            statusEl.style.fontSize = '10px';
+            statusEl.style.fontWeight = 'bold';
+            statusEl.style.display = 'inline-block';
+
+            document.getElementById('profLanguage').innerText = profile.preferredLanguage || 'EN';
+            document.getElementById('languageSelect').value = profile.preferredLanguage || 'EN';
+        }
+    }
+
+    async function updateLanguage() {
+        const language = document.getElementById('languageSelect').value;
+        await apiFetch('/users/me/language', {
+            method: 'PATCH',
+            body: JSON.stringify({ language })
+        });
+        await getProfile();
+
+        await apiFetch('/users/999999999/block', { method: 'DELETE' });
+    }
+
+    function searchUser() {
+        const nick = document.getElementById('searchNick').value;
+        apiFetch(`/users/search?nickName=${nick}`);
+    }
+
+    async function uploadAvatar() {
+        const fileInput = document.getElementById('avatarFile');
+        if (fileInput.files.length === 0) return alert("Select file!");
+
+        const formData = new FormData();
+        formData.append("file", fileInput.files[0]);
+
+        const options = {
+            method: 'POST',
+            body: formData,
+            headers: {} // Let browser set boundary
+        };
+
+        // We can't use apiFetch directly because it forces application/json
+        const url = API_BASE + '/users/me/avatar';
+        const headers = {};
+        const isAuthPath = url.includes('/auth/');
+        if (jwtToken && !isAuthPath) headers['Authorization'] = 'Bearer ' + jwtToken;
+
+        try {
+            const response = await fetch(url, { method: 'POST', body: formData, headers: headers });
+            const status = response.status;
+            let result = await response.text();
+            logRest('POST', '/users/me/avatar', status, result);
+            getProfile();
+        } catch (error) {
+            logRest('POST', '/users/me/avatar', "ERROR", error.message, true);
+        }
+    }
+
+    async function deleteAvatar() {
+        await apiFetch('/users/me/avatar', { method: 'DELETE' });
+        getProfile();
+    }
+
+    function urlBase64ToUint8Array(base64String) {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+        const rawData = atob(base64);
+        return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
+    }
+
+    async function enablePush() {
+        const status = document.getElementById('pushStatus');
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+            return alert("This browser doesn't support Web Push!");
+        }
+        if (!jwtToken) return alert("Login first!");
+
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+            status.innerText = "Push: permission denied";
+            return;
+        }
+
+        const registration = await navigator.serviceWorker.register('/sw.js');
+        const publicKeyResponse = await fetch(API_BASE + '/push/public-key', {
+            headers: { 'Authorization': 'Bearer ' + jwtToken }
+        });
+        const publicKey = await publicKeyResponse.text();
+
+        const subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(publicKey)
+        });
+
+        await apiFetch('/push/subscribe', {
+            method: 'POST',
+            body: JSON.stringify(subscription.toJSON())
+        });
+
+        status.innerText = "Push: enabled";
+    }
+
+    async function disablePush() {
+        const status = document.getElementById('pushStatus');
+        if (!('serviceWorker' in navigator)) return;
+
+        const registration = await navigator.serviceWorker.getRegistration('/sw.js');
+        const subscription = registration && await registration.pushManager.getSubscription();
+
+        if (subscription) {
+            await apiFetch('/push/subscribe?endpoint=' + encodeURIComponent(subscription.endpoint), {
+                method: 'DELETE'
+            });
+            await subscription.unsubscribe();
+        }
+
+        status.innerText = "Push: disabled";
+    }
+
+    function blockUser() {
+        const userId = document.getElementById('blacklistUserId').value;
+        if (!userId) return alert("Встав User ID!");
+        apiFetch(`/users/${userId}/block`, { method: 'POST' });
+    }
+
+    function unblockUser() {
+        const userId = document.getElementById('blacklistUserId').value;
+        if (!userId) return alert("Встав User ID!");
+        apiFetch(`/users/${userId}/block`, { method: 'DELETE' });
+    }
+
+    function getBlacklist() {
+        apiFetch('/users/blocked');
+    }
+
+    function createPrivateChat() {
+        const userId = document.getElementById('targetUserId').value;
+        apiFetch(`/chats/private?userId=${userId}`, { method: 'POST' });
+    }
+    function createGroupChat() {
+        const name = document.getElementById('groupName').value;
+        const idsRaw = document.getElementById('groupParticipantIds').value;
+        const isPrivate = document.getElementById('groupIsPrivate').checked;
+        const participantIds = idsRaw.split(',')
+            .map(id => id.trim())
+            .filter(id => id.length > 0)
+            .map(Number);
+
+        if (!name || participantIds.length === 0) {
+            return alert("Введи назву групи і хоча б одного учасника!");
+        }
+
+        apiFetch('/chats/group', {
+            method: 'POST',
+            body: JSON.stringify({ name, participantIds, isPrivate })
+        });
+    }
+    async function uploadGroupAvatar() {
+        const chatId = document.getElementById('groupChatId').value;
+        const fileInput = document.getElementById('groupAvatarFile');
+        if (!chatId) return alert("Встав Group Chat ID!");
+        if (fileInput.files.length === 0) return alert("Select file!");
+
+        const formData = new FormData();
+        formData.append("file", fileInput.files[0]);
+
+        const url = API_BASE + `/chats/${chatId}/avatar`;
+        const headers = jwtToken ? { 'Authorization': 'Bearer ' + jwtToken } : {};
+
+        try {
+            const response = await fetch(url, { method: 'POST', body: formData, headers: headers });
+            const status = response.status;
+            const result = (await response.text()).replace(/^"|"$/g, '');
+            logRest('POST', `/chats/${chatId}/avatar`, status, result);
+
+            if (status < 400) {
+                showGroupAvatarPreview(result);
+            }
+        } catch (error) {
+            logRest('POST', `/chats/${chatId}/avatar`, "ERROR", error.message, true);
+        }
+    }
+    async function deleteGroupAvatar() {
+        const chatId = document.getElementById('groupChatId').value;
+        if (!chatId) return alert("Встав Group Chat ID!");
+
+        await apiFetch(`/chats/${chatId}/avatar`, { method: 'DELETE' });
+        hideGroupAvatarPreview();
+    }
+    function showGroupAvatarPreview(avatarUrl) {
+        const img = document.getElementById('groupAvatarPreview');
+        // Cache-bust: uploading a new file re-uses the old <img> element, and the
+        // browser would otherwise keep showing the previous picture from cache.
+        img.src = API_BASE + '/uploads/' + avatarUrl + '?t=' + Date.now();
+        img.style.display = 'block';
+    }
+    function hideGroupAvatarPreview() {
+        const img = document.getElementById('groupAvatarPreview');
+        img.style.display = 'none';
+        img.src = '';
+    }
+    function addParticipants() {
+        const chatId = document.getElementById('groupChatId').value;
+        const idsRaw = document.getElementById('addParticipantIds').value;
+        const participantIds = idsRaw.split(',')
+            .map(id => id.trim())
+            .filter(id => id.length > 0)
+            .map(Number);
+
+        if (!chatId || participantIds.length === 0) {
+            return alert("Встав Group Chat ID і хоча б один User ID!");
+        }
+
+        apiFetch(`/chats/${chatId}/participants`, {
+            method: 'POST',
+            body: JSON.stringify({ participantIds })
+        });
+    }
+    function removeParticipant() {
+        const chatId = document.getElementById('groupChatId').value;
+        const userId = document.getElementById('removeParticipantId').value;
+
+        if (!chatId || !userId) {
+            return alert("Встав Group Chat ID і User ID для видалення!");
+        }
+
+        apiFetch(`/chats/${chatId}/participants/${userId}`, { method: 'DELETE' });
+    }
+    function transferOwnership() {
+        const chatId = document.getElementById('groupChatId').value;
+        const newOwnerId = document.getElementById('newOwnerId').value;
+
+        if (!chatId || !newOwnerId) {
+            return alert("Встав Group Chat ID і New Owner ID!");
+        }
+
+        apiFetch(`/chats/${chatId}/transfer-ownership?newOwnerId=${newOwnerId}`, { method: 'POST' });
+    }
+    function leaveGroupChat() {
+        const chatId = document.getElementById('groupChatId').value;
+        if (!chatId) return alert("Встав Group Chat ID!");
+
+        apiFetch(`/chats/${chatId}/leave`, { method: 'POST' });
+    }
+    function openChat() {
+        const chatId = document.getElementById('targetChatId').value;
+        if (!chatId) {
+            alert("Будь ласка, введіть Chat ID!");
+            logRest('POST', '/chats/{chatId}/open', 'CLIENT_ERROR', 'Please enter Chat ID', true);
+            return;
+        }
+        apiFetch(`/chats/${chatId}/open`, { method: 'POST' });
+    }
+    function getMyChats() { apiFetch('/chats'); }
+    function getSidebar() { apiFetch('/chats/sidebar'); }
+    function getSelfChat() { apiFetch('/chats/self'); }
+    function createSelfChat() { apiFetch('/notes/self', { method: 'POST' }); }
+
+    let presenceHeartbeat = null;
+
+    function connect() {
+        if (!jwtToken) return alert("Login first!");
+        const socket = new WebSocket('ws://localhost:8080/websocket');
+        stompClient = Stomp.over(socket);
+        stompClient.debug = (msg) => console.log(msg);
+
+        stompClient.connect({ Authorization: "Bearer " + jwtToken },
+            (frame) => {
+                document.getElementById('wsStatus').className = "status-indicator status-online";
+                document.getElementById('wsStatusText').innerText = "Connected";
+                logWs("STOMP Connected");
+
+                // Server marks us online on connect (40s TTL) - keep renewing it
+                // automatically while the connection is alive, like a real client would.
+                // Clear any leftover interval first - Connect can be clicked again
+                // without a Disconnect in between (e.g. after a dropped connection).
+                clearInterval(presenceHeartbeat);
+                presenceHeartbeat = setInterval(presencePing, 25000);
+
+                // Personal queue - server pushes reminders here once reminderAt is due.
+                stompClient.subscribe('/user/queue/reminders', (msg) => {
+                    logWs('REMINDER from /user/queue/reminders', JSON.parse(msg.body));
+                });
+
+                if (autoSubscribeChatId) {
+                    document.getElementById('subChatId').value = autoSubscribeChatId;
+                    subscribe();
+                    autoSubscribeChatId = null;
+                }
+            },
+            (err) => {
+                document.getElementById('wsStatus').className = "status-indicator status-offline";
+                document.getElementById('wsStatusText').innerText = "Disconnected";
+                logWs("STOMP ERROR: " + formatStompError(err), null, true);
+                clearInterval(presenceHeartbeat);
+            }
+        );
+    }
+
+    function disconnect() {
+        if (stompClient) {
+            stompClient.disconnect(() => {
+                document.getElementById('wsStatus').className = "status-indicator status-offline";
+                document.getElementById('wsStatusText').innerText = "Disconnected";
+                logWs("STOMP Disconnected");
+                clearInterval(presenceHeartbeat);
+            });
+        }
+    }
+
+    function subscribe() {
+        const chatId = document.getElementById('subChatId').value;
+        if (!stompClient || !stompClient.connected) {
+            return alert("Not connected - the connection may have been dropped (e.g. by a 403). Click Connect and Subscribe again!");
+        }
+
+        stompClient.subscribe(`/topic/chat/${chatId}`, (msg) => {
+            logWs(`MSG from /topic/chat/${chatId}`, JSON.parse(msg.body));
+        });
+        stompClient.subscribe(`/topic/chat/${chatId}/typing`, (msg) => {
+            logWs(`TYPING in ${chatId}`, JSON.parse(msg.body));
+        });
+        logWs(`Subscribed to /topic/chat/${chatId}`);
+    }
+
+    function sendMessage() {
+        const chatId = document.getElementById('msgChatId').value;
+        const content = document.getElementById('msgContent').value;
+        if (!stompClient || !stompClient.connected) {
+            return alert("Not connected - the connection may have been dropped (e.g. by a 403). Click Connect and Subscribe again!");
+        }
+
+        stompClient.send("/app/chat.send", {}, JSON.stringify({
+            chatId: Number(chatId),
+            content: content,
+            replyToMessageId: null
+        }));
+        logWs("SENT /app/chat.send", { chatId, content });
+    }
+
+    function replyMessage() {
+        const chatId = document.getElementById('msgChatId').value;
+        const content = document.getElementById('msgContent').value;
+        const replyId = document.getElementById('replyId').value;
+        if (!stompClient || !stompClient.connected) {
+            return alert("Not connected - the connection may have been dropped (e.g. by a 403). Click Connect and Subscribe again!");
+        }
+
+        stompClient.send("/app/chat.send", {}, JSON.stringify({
+            chatId: Number(chatId),
+            content: content,
+            replyToMessageId: Number(replyId)
+        }));
+    }
+
+    function editMessage() {
+        const id = document.getElementById('msgId').value;
+        const content = document.getElementById('msgContent').value;
+        apiFetch(`/messages/${id}`, { method: 'PUT', body: JSON.stringify({ content }) });
+    }
+
+    function deleteMessage() {
+        const id = document.getElementById('msgId').value;
+        apiFetch(`/messages/${id}`, { method: 'DELETE' });
+    }
+
+    function pinMessage() {
+        const id = document.getElementById('msgId').value;
+        apiFetch(`/messages/${id}/pin`, { method: 'POST' });
+    }
+
+    function markDelivered() {
+        const id = document.getElementById('msgId').value;
+        apiFetch(`/messages/${id}/delivered`, { method: 'POST' });
+    }
+
+    function markRead() {
+        const id = document.getElementById('msgId').value;
+        apiFetch(`/messages/${id}/read`, { method: 'POST' });
+    }
+
+    function sendAck() {
+        const id = document.getElementById('msgId').value;
+        if (!stompClient || !stompClient.connected) {
+            return alert("Not connected - the connection may have been dropped (e.g. by a 403). Click Connect and Subscribe again!");
+        }
+        stompClient.send("/app/chat.ack", {}, JSON.stringify({ messageId: Number(id) }));
+    }
+
+    function getHistory() {
+        const chatId = document.getElementById('msgChatId').value;
+        apiFetch(`/messages/chat/${chatId}?page=0&size=20`);
+    }
+
+    // The input loses focus the moment the picker button/element is clicked, and
+    // browsers reset selectionStart/End to the end on refocus - so the cursor spot
+    // has to be captured NOW, while focus is still on the textbox, or it's lost.
+    let savedCursorPos = null;
+
+    function toggleEmojiPicker() {
+        const picker = document.getElementById('emojiPicker');
+        const contentInput = document.getElementById('msgContent');
+        if (picker.style.display === 'none') {
+            savedCursorPos = { start: contentInput.selectionStart, end: contentInput.selectionEnd };
+        }
+        picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
+    }
+
+    document.getElementById('emojiPicker').addEventListener('emoji-click', (event) => {
+        const contentInput = document.getElementById('msgContent');
+        const emoji = event.detail.unicode;
+        const start = savedCursorPos ? savedCursorPos.start : contentInput.value.length;
+        const end = savedCursorPos ? savedCursorPos.end : contentInput.value.length;
+
+        contentInput.value = contentInput.value.slice(0, start) + emoji + contentInput.value.slice(end);
+
+        document.getElementById('emojiPicker').style.display = 'none';
+        contentInput.focus();
+        const caretPos = start + emoji.length;
+        contentInput.setSelectionRange(caretPos, caretPos);
+    });
+
+    const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
+
+    QUICK_REACTIONS.forEach(emoji => {
+        const btn = document.createElement('button');
+        btn.className = 'secondary';
+        btn.textContent = emoji;
+        btn.onclick = () => addReaction(emoji);
+        document.getElementById('reactionButtons').appendChild(btn);
+    });
+    if (window.twemoji) twemoji.parse(document.getElementById('reactionButtons'));
+
+    function addReaction(emoji) {
+        const id = document.getElementById('msgId').value;
+        if (!id) return alert("Встав MsgID!");
+        apiFetch(`/messages/${id}/reactions`, {
+            method: 'POST',
+            body: JSON.stringify({ emoji })
+        });
+    }
+
+    function removeReaction() {
+        const id = document.getElementById('msgId').value;
+        if (!id) return alert("Встав MsgID!");
+        apiFetch(`/messages/${id}/reactions`, { method: 'DELETE' });
+    }
+
+    function toggleReactionPicker() {
+        const picker = document.getElementById('reactionPicker');
+        picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
+    }
+
+    document.getElementById('reactionPicker').addEventListener('emoji-click', (event) => {
+        addReaction(event.detail.unicode);
+        document.getElementById('reactionPicker').style.display = 'none';
+    });
+
+    function setReminder() {
+        const id = document.getElementById('msgId').value;
+        // datetime-local already gives "YYYY-MM-DDTHH:mm" in local wall-clock time,
+        // exactly what the backend's zone-less LocalDateTime expects - do NOT run
+        // this through Date/toISOString(), that converts it to UTC and shifts it.
+        const date = document.getElementById('reminderDate').value;
+        apiFetch(`/notes/${id}/reminder`, {
+            method: 'POST',
+            body: JSON.stringify({ reminderAt: date })
+        });
+    }
+
+    function pinNote() {
+        const id = document.getElementById('msgId').value;
+        apiFetch(`/notes/messages/${id}/pin`, { method: 'POST' });
+    }
+
+    function presencePing() {
+        if (!stompClient || !stompClient.connected) {
+            return alert("Not connected - the connection may have been dropped (e.g. by a 403). Click Connect and Subscribe again!");
+        }
+        stompClient.send("/app/presence.ping", {}, '');
+        logWs("SENT /app/presence.ping");
+    }
+
+    function updateLastSeen() {
+        if (!stompClient || !stompClient.connected) {
+            return alert("Not connected - the connection may have been dropped (e.g. by a 403). Click Connect and Subscribe again!");
+        }
+        stompClient.send("/app/presence.lastSeen", {}, '');
+        logWs("SENT /app/presence.lastSeen");
+    }
+
+    // Tab minimized/backgrounded while WS stays connected (not a real
+    // disconnect) - record last-seen automatically, like Telegram's "away".
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden && stompClient && stompClient.connected) {
+            stompClient.send("/app/presence.lastSeen", {}, '');
+            logWs("SENT /app/presence.lastSeen (tab hidden)");
+        }
+    });
+
+    function sendFeedback() {
+        const email = document.getElementById('feedbackEmail').value;
+        const type = document.getElementById('feedbackType').value;
+        const message = document.getElementById('feedbackText').value;
+        apiFetch('/feedback', { method: 'POST', body: JSON.stringify({ email, type, message }) });
+    }
+
+    function getMyFeedback() {
+        apiFetch('/feedback/my');
+    }
+
+    function getAllFeedbackAdmin() {
+        const page = document.getElementById('feedbackAdminPage').value;
+        const size = document.getElementById('feedbackAdminSize').value;
+        apiFetch(`/admin/feedback?page=${page}&size=${size}`);
+    }
+
+    function getFeedbackStatsAdmin() {
+        apiFetch('/admin/feedback/stats');
+    }
+
+    function blockGroupChatAdmin() {
+        const chatId = document.getElementById('adminModChatId').value;
+        const reason = document.getElementById('adminModReason').value;
+        if (!chatId) return alert("Встав Chat ID!");
+        apiFetch(`/admin/chats/${chatId}/block`, {
+            method: 'POST',
+            body: JSON.stringify({ reason })
+        });
+    }
+
+    function unblockGroupChatAdmin() {
+        const chatId = document.getElementById('adminModChatId').value;
+        const reason = document.getElementById('adminModReason').value;
+        if (!chatId) return alert("Встав Chat ID!");
+        apiFetch(`/admin/chats/${chatId}/unblock`, {
+            method: 'POST',
+            body: JSON.stringify({ reason })
+        });
+    }
+
+    function respondFeedbackAdmin() {
+        const id = document.getElementById('feedbackAdminId').value;
+        const status = document.getElementById('feedbackAdminStatus').value;
+        const adminReply = document.getElementById('feedbackAdminReply').value;
+
+        const body = {
+            status: status || null,
+            adminReply: adminReply || null
+        };
+
+        apiFetch(`/admin/feedback/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
+    }
+
+</script>
+
+</body>
+</html>

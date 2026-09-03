@@ -1,0 +1,21 @@
+databaseChangeLog:
+  - changeSet:
+      id: add-feedback-admin-reply
+      author: vitaliy
+      changes:
+
+        - addColumn:
+            tableName: feedback
+            columns:
+
+              - column:
+                  name: admin_reply
+                  type: VARCHAR(5000)
+                  constraints:
+                    nullable: true
+
+              - column:
+                  name: responded_at
+                  type: DATETIME
+                  constraints:
+                    nullable: true

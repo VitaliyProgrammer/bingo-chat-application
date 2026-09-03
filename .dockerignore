@@ -1,0 +1,6 @@
+target/
+uploads/
+.idea/
+.git/
+*.iml
+*.log

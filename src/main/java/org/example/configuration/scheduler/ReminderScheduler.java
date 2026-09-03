@@ -1,0 +1,109 @@
+package org.example.configuration.scheduler;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.example.configuration.outbox.entity.OutboxEvent;
+import org.example.configuration.outbox.repository.OutBoxEventRepository;
+import org.example.configuration.outbox.status.OutboxEventStatus;
+import org.example.dto.response.MessageReminderResponseDto;
+import org.example.event.MessageRemindedEvent;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class ReminderScheduler {
+
+    private static final int BATCH_SIZE = 50;
+
+    private static final String LOCK_KEY = "reminder_scheduler";
+
+    private static final Duration LOCK_TTL = Duration.ofSeconds(60);
+
+    private final OutBoxEventRepository outBoxEventRepository;
+
+    private final ObjectMapper objectMapper;
+    private final SimpMessagingTemplate messagingTemplate;
+
+    private final SchedulerLockManager schedulerLockManager;
+
+    @Scheduled(fixedDelay = 30000)
+    @Transactional
+    public void processReminders() {
+
+        Optional<String> lockToken = schedulerLockManager.acquireLock(LOCK_KEY, LOCK_TTL);
+
+        if (lockToken.isEmpty()) {
+            return;
+        }
+
+        try {
+
+            List<OutboxEvent> events = outBoxEventRepository.findBatchForProcessing(
+                    PageRequest.of(0, BATCH_SIZE)
+            );
+
+            for (OutboxEvent event : events) {
+
+                if (!OutboxEventStatus.MESSAGE_REMINDED.name().equals(event.getEventType())) {
+                    continue;
+                }
+
+                processReminderEvent(event);
+            }
+        } finally {
+            schedulerLockManager.releaseLock(LOCK_KEY, lockToken.get());
+        }
+    }
+
+    public void processReminderEvent(OutboxEvent event) {
+
+        try {
+            MessageRemindedEvent reminderEvent = objectMapper.readValue(
+                    event.getPayload(),
+                    MessageRemindedEvent.class
+            );
+
+            if (reminderEvent.reminderAt().isAfter(LocalDateTime.now())) {
+                return;
+            }
+
+            messagingTemplate.convertAndSendToUser(
+                    reminderEvent.userId().toString(),
+                    "/queue/reminders",
+                    new MessageReminderResponseDto(
+                            "REMINDER",
+                            reminderEvent.messageId(),
+                            reminderEvent.chatId(),
+                            reminderEvent.content(),
+                            reminderEvent.reminderAt()
+                    )
+            );
+
+            event.setProcessed(true);
+            outBoxEventRepository.save(event);
+
+            log.info("Reminder delivered: messageId={}, userId={}",
+                    reminderEvent.messageId(), reminderEvent.userId());
+
+        } catch (Exception exception) {
+
+            event.setRetryCount(event.getRetryCount() + 1);
+
+            event.setNextRetryAt(LocalDateTime.now().plusMinutes(event.getRetryCount() * 2L));
+
+            outBoxEventRepository.save(event);
+
+            log.error("Failed to process reminder event: eventId={}", event.getId(), exception);
+        }
+    }
+}

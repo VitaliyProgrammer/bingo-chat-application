@@ -1,0 +1,78 @@
+databaseChangeLog:
+  - changeSet:
+      id: users
+      author: vitaliy
+      changes:
+
+        - createTable:
+            tableName: users
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+
+              - column:
+                  name: email
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+                    unique: true
+
+              - column:
+                  name: nickname
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+                    unique: true
+
+              - column:
+                  name: password
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: first_name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: last_name
+                  type: VARCHAR(255)
+
+              - column:
+                  name: avatar_url
+                  type: VARCHAR(500)
+
+              - column:
+                  name: account_creation_date
+                  type: DATETIME
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: last_update_date
+                  type: DATETIME
+
+              - column:
+                  name: last_in_online
+                  type: DATETIME
+
+        - createIndex:
+            tableName: users
+            indexName: idx_users_email
+            columns:
+              - column:
+                  name: email
+
+        - createIndex:
+            tableName: users
+            indexName: idx_users_nickname
+            columns:
+              - column:
+                  name: nickname

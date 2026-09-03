@@ -1,0 +1,32 @@
+databaseChangeLog:
+  - changeSet:
+      id: add-message-sequence-generator
+      author: vitaliy
+      comment: "Add stored procedure for atomic sequence generation per chat"
+      validCheckSum: 9:982e071f340f374efb89b3f8d3a7f675
+      changes:
+        - sql:
+            splitStatements: false
+            sql: |
+              CREATE FUNCTION get_next_message_sequence(p_chat_id BIGINT)
+              RETURNS BIGINT
+              READS SQL DATA
+              BEGIN
+                DECLARE next_seq BIGINT;
+
+                -- Atomic increment with row-level lock
+                SELECT last_message_sequence + 1 INTO next_seq
+                FROM chats
+                WHERE id = p_chat_id
+                FOR UPDATE;
+
+                -- Update with the new value
+                UPDATE chats
+                SET last_message_sequence = next_seq
+                WHERE id = p_chat_id;
+
+                RETURN next_seq;
+              END
+
+        - rollback:
+            sql: DROP FUNCTION IF EXISTS get_next_message_sequence;
