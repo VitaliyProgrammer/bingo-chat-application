@@ -5,6 +5,7 @@ import io.micrometer.core.instrument.Timer;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.configuration.metrics.service.ApplicationMetricsService;
@@ -38,6 +39,8 @@ public class OutBoxEventProcessor {
 
     private static final String LOCK_KEY = "outbox:process";
 
+    private static final Duration LOCK_TTL = Duration.ofSeconds(60);
+
     private final OutBoxEventRepository outBoxEventRepository;
 
     private final RabbitTemplate rabbitTemplate;
@@ -54,7 +57,9 @@ public class OutBoxEventProcessor {
     @Transactional
     public void process() {
 
-        if (!schedulerLockManager.acquireLock(LOCK_KEY, Duration.ofSeconds(10))) {
+        Optional<String> lockToken = schedulerLockManager.acquireLock(LOCK_KEY, LOCK_TTL);
+
+        if (lockToken.isEmpty()) {
             log.debug("Skip outbox poll: already running");
             return;
         }
@@ -84,7 +89,7 @@ public class OutBoxEventProcessor {
         } finally {
             metricsService.stopOutboxTimer(sample);
 
-            schedulerLockManager.releaseLock(LOCK_KEY);
+            schedulerLockManager.releaseLock(LOCK_KEY, lockToken.get());
         }
     }
 

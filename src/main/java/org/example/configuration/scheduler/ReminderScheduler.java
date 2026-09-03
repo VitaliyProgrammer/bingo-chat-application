@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.configuration.outbox.entity.OutboxEvent;
@@ -24,6 +25,10 @@ public class ReminderScheduler {
 
     private static final int BATCH_SIZE = 50;
 
+    private static final String LOCK_KEY = "reminder_scheduler";
+
+    private static final Duration LOCK_TTL = Duration.ofSeconds(60);
+
     private final OutBoxEventRepository outBoxEventRepository;
 
     private final ObjectMapper objectMapper;
@@ -35,12 +40,9 @@ public class ReminderScheduler {
     @Transactional
     public void processReminders() {
 
-        boolean acquired = schedulerLockManager.acquireLock(
-                "reminder_scheduler",
-                Duration.ofSeconds(20)
-        );
+        Optional<String> lockToken = schedulerLockManager.acquireLock(LOCK_KEY, LOCK_TTL);
 
-        if (!acquired) {
+        if (lockToken.isEmpty()) {
             return;
         }
 
@@ -59,7 +61,7 @@ public class ReminderScheduler {
                 processReminderEvent(event);
             }
         } finally {
-            schedulerLockManager.releaseLock("reminder_scheduler");
+            schedulerLockManager.releaseLock(LOCK_KEY, lockToken.get());
         }
     }
 
