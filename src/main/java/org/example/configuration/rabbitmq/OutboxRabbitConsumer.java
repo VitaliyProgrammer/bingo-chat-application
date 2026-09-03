@@ -11,6 +11,7 @@ import org.example.event.MessagePinnedEvent;
 import org.example.event.MessageReactedEvent;
 import org.example.event.MessageReadEvent;
 import org.example.event.MessageSentEvent;
+import org.springframework.amqp.AmqpRejectAndDontRequeueException;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
@@ -30,6 +31,9 @@ public class OutboxRabbitConsumer {
         } catch (Exception exception) {
             log.error("Failed to process outbox message: eventType={}",
                     message.eventType(), exception);
+
+            throw new AmqpRejectAndDontRequeueException(
+                    "Outbox message rejected: " + message.eventType(), exception);
         }
     }
 

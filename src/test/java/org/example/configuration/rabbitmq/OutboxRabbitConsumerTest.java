@@ -1,5 +1,6 @@
 package org.example.configuration.rabbitmq;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -17,6 +18,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.amqp.AmqpRejectAndDontRequeueException;
 
 @ExtendWith(MockitoExtension.class)
 class OutboxRabbitConsumerTest {
@@ -67,11 +69,12 @@ class OutboxRabbitConsumerTest {
     }
 
     @Test
-    void onMessage_unknownEventType_isSwallowedWithoutThrowing() {
+    void onMessage_unknownEventType_isRejectedToDeadLetterQueue() {
 
         OutboxMessage message = new OutboxMessage("NOT_A_REAL_TYPE", "{}");
 
-        consumer.onMessage(message);
+        assertThatThrownBy(() -> consumer.onMessage(message))
+                .isInstanceOf(AmqpRejectAndDontRequeueException.class);
 
         verify(messageEventListener, never()).handleMessageSent(any());
     }
