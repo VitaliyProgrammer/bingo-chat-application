@@ -52,6 +52,7 @@ services:
       RABBITMQ_PORT: 5672
       RABBITMQ_USERNAME: guest
       RABBITMQ_PASSWORD: guest
+      CORS_ALLOWED_ORIGINS: http://localhost:8080
     volumes:
       - uploads-data:/app/uploads
     depends_on:
