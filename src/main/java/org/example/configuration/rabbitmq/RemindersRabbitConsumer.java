@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.dto.response.MessageReminderResponseDto;
 import org.example.event.MessageRemindedEvent;
 import org.example.service.RedisService;
+import org.springframework.amqp.AmqpRejectAndDontRequeueException;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
@@ -54,6 +55,9 @@ public class RemindersRabbitConsumer {
         } catch (Exception exception) {
             log.error("Failed to process reminder: outboxEventId={}",
                     message.outboxEventId(), exception);
+
+            throw new AmqpRejectAndDontRequeueException(
+                    "Reminder rejected: outboxEventId=" + message.outboxEventId(), exception);
         }
     }
 }

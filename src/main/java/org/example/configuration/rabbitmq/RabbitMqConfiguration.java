@@ -26,6 +26,10 @@ public class RabbitMqConfiguration {
     public static final String REMINDERS_QUEUE = "reminders.queue";
     public static final String REMINDERS_ROUTING_KEY = "reminder.due";
 
+    public static final String REMINDERS_DEAD_LETTER_EXCHANGE = "reminders.dlx";
+    public static final String REMINDERS_DEAD_LETTER_QUEUE = "reminders.queue.dlq";
+    public static final String REMINDERS_DEAD_LETTER_ROUTING_KEY = "reminder.dead";
+
     @Bean
     public DirectExchange outboxExchange() {
         return new DirectExchange(OUTBOX_EXCHANGE);
@@ -70,7 +74,28 @@ public class RabbitMqConfiguration {
 
     @Bean
     public Queue remindersQueue() {
-        return new Queue(REMINDERS_QUEUE, true);
+        return QueueBuilder.durable(REMINDERS_QUEUE)
+                .deadLetterExchange(REMINDERS_DEAD_LETTER_EXCHANGE)
+                .deadLetterRoutingKey(REMINDERS_DEAD_LETTER_ROUTING_KEY)
+                .build();
+    }
+
+    @Bean
+    public DirectExchange remindersDeadLetterExchange() {
+        return new DirectExchange(REMINDERS_DEAD_LETTER_EXCHANGE);
+    }
+
+    @Bean
+    public Queue remindersDeadLetterQueue() {
+        return QueueBuilder.durable(REMINDERS_DEAD_LETTER_QUEUE).build();
+    }
+
+    @Bean
+    public Binding remindersDeadLetterBinding(Queue remindersDeadLetterQueue,
+                                              DirectExchange remindersDeadLetterExchange) {
+        return BindingBuilder.bind(remindersDeadLetterQueue)
+                .to(remindersDeadLetterExchange)
+                .with(REMINDERS_DEAD_LETTER_ROUTING_KEY);
     }
 
     @Bean

@@ -1,5 +1,6 @@
 package org.example.configuration.rabbitmq;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -19,6 +20,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.amqp.AmqpRejectAndDontRequeueException;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 @ExtendWith(MockitoExtension.class)
@@ -50,6 +52,19 @@ class RemindersRabbitConsumerTest {
 
         verify(messagingTemplate).convertAndSendToUser(
                 eq("2"), eq("/queue/reminders"), any(MessageReminderResponseDto.class));
+    }
+
+    @Test
+    void onMessage_malformedPayload_isRejectedToDeadLetterQueue() {
+
+        when(redisService.setIfAbsent(eq("event:reminded:11"), eq("1"), any(Duration.class)))
+                .thenReturn(true);
+
+        assertThatThrownBy(() -> consumer.onMessage(new DelayedReminderMessage(11L, "not-json")))
+                .isInstanceOf(AmqpRejectAndDontRequeueException.class);
+
+        verify(messagingTemplate, never()).convertAndSendToUser(
+                any(), any(), any(MessageReminderResponseDto.class));
     }
 
     @Test
