@@ -230,3 +230,8 @@ JPQL joins return correct rows against a real database.
 - [**Overview & features**](docs/01-overview.md) — what the project does, quick start, how to run the tests
 - [**Architecture**](docs/02-architecture.md) — authentication flows, message delivery pipeline, concurrency patterns, data model
 - [**Tech stack**](docs/03-tech-stack.md) — every technology used, and why
+
+## 📐 Diagrams
+
+- [**General structure of the system**](diagrams/01-architecture-system.png) — how the overall project system works
+- [**Internal message delivery system**](diagrams/02-delivery-path-system.png) — how the message delivery system works
