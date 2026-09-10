@@ -6,5 +6,7 @@ target/
 
 src/main/resources/application.properties
 
+uploads/
+
 SEQUENCE_GENERATION.md
 MESSAGE_DELIVERY_ARCHITECTURE.md
