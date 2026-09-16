@@ -204,6 +204,10 @@
         <input id="loginPass" placeholder="Password" type="password" value="password123">
         <button style="width: 100%" type="button" onclick="login()">Login</button>
         <div id="tokenDisplay" class="token-info">No token</div>
+        <div class="grid-buttons" style="margin-top: 5px;">
+            <button class="secondary" onclick="refreshAccessToken()">Refresh Token</button>
+            <button class="danger" onclick="logout()">Logout</button>
+        </div>
     </div>
 
     <div class="section">
@@ -437,11 +441,12 @@
 <script>
     let stompClient = null;
     let jwtToken = localStorage.getItem('jwt_token') || "";
+    let refreshToken = localStorage.getItem('refresh_token') || "";
     let autoSubscribeChatId = null;
 
     window.addEventListener('load', () => {
         if (jwtToken) {
-            document.getElementById('tokenDisplay').innerText = "Token: " + jwtToken.substring(0, 20) + "...";
+            updateTokenDisplay();
             getProfile();
         }
 
@@ -459,11 +464,64 @@
     });
     const API_BASE = "http://localhost:8080";
 
-    if (jwtToken) {
+    updateTokenDisplay();
+
+    function updateTokenDisplay() {
         const tokenDisplay = document.getElementById('tokenDisplay');
-        if (tokenDisplay) {
-            tokenDisplay.innerText = "Token: " + jwtToken.substring(0, 20) + "...";
+        if (!tokenDisplay) return;
+        tokenDisplay.innerText = jwtToken
+            ? "Token: " + jwtToken.substring(0, 20) + "..."
+            : "No token";
+    }
+
+    function storeTokens(data) {
+        jwtToken = data.token;
+        refreshToken = data.refreshToken;
+        localStorage.setItem('jwt_token', jwtToken);
+        localStorage.setItem('refresh_token', refreshToken);
+        updateTokenDisplay();
+    }
+
+    function clearAuth() {
+        jwtToken = "";
+        refreshToken = "";
+        localStorage.removeItem('jwt_token');
+        localStorage.removeItem('refresh_token');
+        updateTokenDisplay();
+    }
+
+    async function refreshAccessToken() {
+        if (!refreshToken) return false;
+
+        const data = await apiFetch('/auth/refresh', {
+            method: 'POST',
+            body: JSON.stringify({ refreshToken })
+        });
+
+        if (!data || !data.token) {
+            clearAuth();
+            return false;
         }
+
+        storeTokens(data);
+        return true;
+    }
+
+    async function logout() {
+        if (refreshToken) {
+            await apiFetch('/auth/logout', {
+                method: 'POST',
+                body: JSON.stringify({ refreshToken })
+            });
+        }
+
+        clearAuth();
+
+        if (stompClient && stompClient.connected) {
+            disconnect();
+        }
+
+        document.getElementById('profileInfo').style.display = 'none';
     }
 
     function syntaxHighlight(json) {
@@ -547,18 +605,25 @@
     async function apiFetch(path, options = {}) {
         const url = API_BASE + path;
         const method = options.method || 'GET';
-        const defaultHeaders = { 'Content-Type': 'application/json' };
-        
-        // Don't send token for registration or login
         const isAuthPath = path.startsWith('/auth/');
-        if (jwtToken && !isAuthPath) {
-            defaultHeaders['Authorization'] = 'Bearer ' + jwtToken;
-        }
 
-        options.headers = { ...defaultHeaders, ...options.headers };
+        const doRequest = () => {
+            const headers = { 'Content-Type': 'application/json' };
+            if (jwtToken && !isAuthPath) {
+                headers['Authorization'] = 'Bearer ' + jwtToken;
+            }
+            return fetch(url, { ...options, headers: { ...headers, ...options.headers } });
+        };
 
         try {
-            const response = await fetch(url, options);
+            let response = await doRequest();
+
+            if (response.status === 401 && !isAuthPath && refreshToken) {
+                if (await refreshAccessToken()) {
+                    response = await doRequest();
+                }
+            }
+
             const status = response.status;
             let result = null;
             if (status !== 204) {
@@ -593,14 +658,9 @@
         
         console.log("Fetching authentication...");
         const data = await apiFetch('/auth/authentication', { method: 'POST', body: JSON.stringify(body) });
-        
+
         if (data && data.token) {
-            jwtToken = data.token;
-            localStorage.setItem('jwt_token', jwtToken);
-            const tokenDisplay = document.getElementById('tokenDisplay');
-            if (tokenDisplay) {
-                tokenDisplay.innerText = "Token: " + jwtToken.substring(0, 20) + "...";
-            }
+            storeTokens(data);
             await getProfile();
         } else {
             console.warn("Login failed or no token received", data);
