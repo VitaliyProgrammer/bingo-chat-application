@@ -4,8 +4,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Set;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
+import org.example.exception.BadRequestException;
 import org.example.service.FileService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -15,13 +17,22 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 public class FileServiceImpl implements FileService {
 
+    private static final Set<String> ALLOWED_CONTENT_TYPES =
+            Set.of("image/jpeg", "image/png", "image/webp");
+
     @Value("${file.upload-dir:uploads}")
     private String uploadDir;
 
     @Override
     public String saveFile(String subDirectory, MultipartFile file) {
         if (file.isEmpty()) {
-            throw new IllegalArgumentException("Cannot save empty file.");
+            throw new BadRequestException("Cannot save an empty file!");
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType)) {
+            throw new BadRequestException(
+                    "Unsupported file type! Allowed: JPEG, PNG, WEBP.");
         }
 
         try {
@@ -30,12 +41,7 @@ public class FileServiceImpl implements FileService {
                 Files.createDirectories(directoryPath);
             }
 
-            String originalFilename = file.getOriginalFilename();
-            String extension = "";
-            if (originalFilename != null && originalFilename.contains(".")) {
-                extension = originalFilename.substring(originalFilename.lastIndexOf("."));
-            }
-            String fileName = UUID.randomUUID().toString() + extension;
+            String fileName = UUID.randomUUID() + extensionFor(contentType);
             Path filePath = directoryPath.resolve(fileName);
 
             Files.copy(file.getInputStream(), filePath);
@@ -45,6 +51,15 @@ public class FileServiceImpl implements FileService {
             log.error("Failed to store file", e);
             throw new RuntimeException("Could not store file. Error: " + e.getMessage());
         }
+    }
+
+    private String extensionFor(String contentType) {
+        return switch (contentType) {
+            case "image/jpeg" -> ".jpg";
+            case "image/png" -> ".png";
+            case "image/webp" -> ".webp";
+            default -> "";
+        };
     }
 
     @Override
