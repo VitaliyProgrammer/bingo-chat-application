@@ -38,6 +38,9 @@ is the map, not the territory.
 
 - 🧩 Two independent, correctly-scoped authentication mechanisms for two transports
   that don't share a threading model (REST vs STOMP/WebSocket)
+- 🔑 Short-lived JWT access tokens (15 min) paired with revocable, single-use
+  refresh tokens - a leaked access token expires fast, and a stolen refresh
+  token is invalidated the moment it's used
 - 📡 Reliable, at-least-once event delivery via the **Outbox pattern**, backed by a
   real broker (RabbitMQ) with a scheduled fallback so nothing gets silently lost
 - 🔒 Concurrency correctness proven against a **real** database under real concurrent
@@ -171,7 +174,7 @@ classDiagram
 | Language / runtime | Java 17 |
 | Framework | Spring Boot 3.2.4 |
 | Real-time transport | WebSocket + STOMP |
-| Security | Spring Security, JWT (jjwt), BCrypt |
+| Security | Spring Security, JWT (jjwt) access tokens + Redis-backed refresh tokens, BCrypt |
 | Persistence | Spring Data JPA / Hibernate, MySQL 8, Liquibase |
 | Caching & ephemeral state | Redis 7 |
 | Messaging | RabbitMQ + delayed-message plugin, Spring AMQP |
