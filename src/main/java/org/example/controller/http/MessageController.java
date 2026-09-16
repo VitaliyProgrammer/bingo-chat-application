@@ -3,6 +3,8 @@ package org.example.controller.http;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.dto.request.EditMessageRequestDto;
@@ -11,6 +13,7 @@ import org.example.dto.response.MessagePageResponseDto;
 import org.example.dto.response.MessageResponseDto;
 import org.example.service.MessageService;
 import org.springframework.http.HttpStatus;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,6 +26,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
+@Validated
 @RestController
 @RequestMapping("/messages")
 @RequiredArgsConstructor
@@ -103,8 +107,8 @@ public class MessageController {
             description = "Retrieve paginated messages for the specific chat(infinitive scrolling)")
     public MessagePageResponseDto getChatMessages(
             @PathVariable Long chatId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
 
         return messageService.getChatMessages(chatId, page, size);
     }

@@ -3,6 +3,8 @@ package org.example.controller.http;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.example.dto.request.FeedbackUpdateRequestDto;
 import org.example.dto.response.AdminFeedbackStatsResponseDto;
@@ -11,6 +13,7 @@ import org.example.dto.response.FeedbackResponseDto;
 import org.example.service.FeedbackService;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+@Validated
 @RestController
 @RequestMapping("/admin/feedback")
 @RequiredArgsConstructor
@@ -43,8 +47,8 @@ public class AdminFeedbackController {
     @Operation(summary = "Get all feedback",
             description = "Returns a paginated list of feedback submitted by all users")
     public FeedbackPageResponseDto getAllFeedback(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
 
         return feedbackService.getAllFeedback(page, size);
     }

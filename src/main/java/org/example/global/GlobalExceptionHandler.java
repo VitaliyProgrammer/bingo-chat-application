@@ -1,5 +1,6 @@
 package org.example.global;
 
+import jakarta.validation.ConstraintViolationException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -73,6 +74,18 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         log.error("Error [{}]: {} (code={})", traceId, message, VALIDATION_ERROR_CODE);
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ErrorResponseBody> handleConstraintViolationException(
+            ConstraintViolationException exception) {
+
+        String message = exception.getConstraintViolations().stream()
+                .findFirst()
+                .map(violation -> violation.getMessage())
+                .orElse("Validation is failed!");
+
+        return buildResponse(message, VALIDATION_ERROR_CODE, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(RegistrationException.class)
