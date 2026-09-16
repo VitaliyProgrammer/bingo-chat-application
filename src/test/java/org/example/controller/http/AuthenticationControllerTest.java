@@ -85,9 +85,9 @@ class AuthenticationControllerTest {
     }
 
     @Test
-    void login_validCredentials_returnsOkWithToken() throws Exception {
+    void login_validCredentials_returnsOkWithTokenAndRefreshToken() throws Exception {
         when(authenticationService.login(any()))
-                .thenReturn(new UserLoginResponseDto("jwt-token-value"));
+                .thenReturn(new UserLoginResponseDto("jwt-token-value", "refresh-token-value"));
 
         mockMvc.perform(post("/auth/authentication")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -95,7 +95,58 @@ class AuthenticationControllerTest {
                                 {"email": "user@example.com", "password": "password123"}
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").value("jwt-token-value"));
+                .andExpect(jsonPath("$.token").value("jwt-token-value"))
+                .andExpect(jsonPath("$.refreshToken").value("refresh-token-value"));
+    }
+
+    @Test
+    void refresh_validRefreshToken_returnsNewTokenPair() throws Exception {
+        when(authenticationService.refresh(any()))
+                .thenReturn(new UserLoginResponseDto("new-jwt-token", "new-refresh-token"));
+
+        mockMvc.perform(post("/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"refreshToken": "old-refresh-token"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").value("new-jwt-token"))
+                .andExpect(jsonPath("$.refreshToken").value("new-refresh-token"));
+    }
+
+    @Test
+    void refresh_invalidRefreshToken_returnsUnauthorized() throws Exception {
+        when(authenticationService.refresh(any()))
+                .thenThrow(new AuthenticationException("Invalid or expired refresh token!"));
+
+        mockMvc.perform(post("/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"refreshToken": "stolen-or-expired-token"}
+                                """))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("AUTHENTICATION_FAILED"));
+    }
+
+    @Test
+    void refresh_blankRefreshToken_isRejectedByBeanValidation() throws Exception {
+        mockMvc.perform(post("/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"refreshToken": ""}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void logout_validRefreshToken_returnsNoContent() throws Exception {
+        mockMvc.perform(post("/auth/logout")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"refreshToken": "some-refresh-token"}
+                                """))
+                .andExpect(status().isNoContent());
     }
 
     @Test

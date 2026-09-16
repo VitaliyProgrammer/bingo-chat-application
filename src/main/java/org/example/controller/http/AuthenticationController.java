@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.example.dto.request.RefreshTokenRequestDto;
 import org.example.dto.request.UserLoginRequestDto;
 import org.example.dto.request.UserRegistrationRequestDto;
 import org.example.dto.response.UserLoginResponseDto;
@@ -42,5 +43,26 @@ public class AuthenticationController {
             @RequestBody @Valid UserLoginRequestDto request) {
 
         return authenticationService.login(request);
+    }
+
+    @PostMapping("/refresh")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Refresh access token",
+            description = "Exchanges a valid refresh token for a new access/refresh token pair. "
+                    + "The refresh token used in the call is invalidated immediately (rotation).")
+    public UserLoginResponseDto refresh(
+            @RequestBody @Valid RefreshTokenRequestDto request) {
+
+        return authenticationService.refresh(request);
+    }
+
+    @PostMapping("/logout")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Log out",
+            description = "Invalidates the given refresh token, ending that session")
+    public void logout(
+            @RequestBody @Valid RefreshTokenRequestDto request) {
+
+        authenticationService.logout(request);
     }
 }
