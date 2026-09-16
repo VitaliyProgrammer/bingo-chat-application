@@ -19,6 +19,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
@@ -71,6 +72,21 @@ class WebSocketSubscriptionGuardTest {
         verify(securityAuditService).webSocketDenied(USER_ID, SEND_DESTINATION,
                 "Too many messages!");
         verify(metricsService).incrementWebSocketDenied();
+    }
+
+    @Test
+    void preSend_chatSendRedisDown_failsOpenAndPassesThrough() {
+
+        when(redisService.isAllowed(SEND_KEY, 20, Duration.ofSeconds(10)))
+                .thenThrow(new RedisConnectionFailureException("Connection refused"));
+
+        Message<?> message = chatSendMessage();
+
+        Message<?> result = guard.preSend(message, null);
+
+        assertThat(result).isSameAs(message);
+        verify(securityAuditService, never()).webSocketDenied(USER_ID, SEND_DESTINATION,
+                "Too many messages!");
     }
 
     @Test

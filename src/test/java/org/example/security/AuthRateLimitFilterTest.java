@@ -21,6 +21,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.redis.RedisConnectionFailureException;
 
 @ExtendWith(MockitoExtension.class)
 class AuthRateLimitFilterTest {
@@ -102,6 +103,21 @@ class AuthRateLimitFilterTest {
         verify(filterChain, never()).doFilter(any(), any());
         verify(securityAuditService).rateLimitExceeded(IP, "/auth/authentication");
         verify(metricsService).incrementRateLimitExceeded("/auth/authentication");
+    }
+
+    @Test
+    void doFilter_redisUnavailable_failsOpenAndPassesThrough() throws Exception {
+
+        when(request.getMethod()).thenReturn("POST");
+        when(request.getRequestURI()).thenReturn("/auth/authentication");
+        when(request.getRemoteAddr()).thenReturn(IP);
+        when(redisService.isAllowed(anyString(), anyInt(), any(Duration.class)))
+                .thenThrow(new RedisConnectionFailureException("Connection refused"));
+
+        filter.doFilter(request, response, filterChain);
+
+        verify(filterChain).doFilter(request, response);
+        verify(response, never()).setStatus(429);
     }
 
     @Test

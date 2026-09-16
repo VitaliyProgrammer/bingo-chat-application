@@ -9,6 +9,7 @@ import org.example.repository.ChatRepository;
 import org.example.security.audit.SecurityAuditService;
 import org.example.security.websocket.exception.WebSocketAccessDeniedException;
 import org.example.service.RedisService;
+import org.springframework.dao.DataAccessException;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
@@ -116,7 +117,7 @@ public class WebSocketSubscriptionGuard implements ChannelInterceptor {
 
         String key = "websocket:subscribe:" + userId;
 
-        if (!redisService.isAllowed(key, SUBSCRIBE_LIMIT, Duration.ofSeconds(1))) {
+        if (!isAllowedFailOpen(key, SUBSCRIBE_LIMIT, Duration.ofSeconds(1))) {
             throw new WebSocketAccessDeniedException("Too many subscribe requests!");
         }
     }
@@ -125,13 +126,25 @@ public class WebSocketSubscriptionGuard implements ChannelInterceptor {
 
         String key = "websocket:send:" + userId;
 
-        if (!redisService.isAllowed(key, SEND_LIMIT, Duration.ofSeconds(10))) {
+        if (!isAllowedFailOpen(key, SEND_LIMIT, Duration.ofSeconds(10))) {
             securityAuditService.webSocketDenied(userId, CHAT_SEND_DESTINATION,
                     "Too many messages!");
             metricsService.incrementWebSocketDenied();
 
             log.warn("Denied send: userId={}, reason=rate_limit", userId);
             throw new WebSocketAccessDeniedException("Too many messages, slow down!");
+        }
+    }
+
+    private boolean isAllowedFailOpen(String key, int maxRequests, Duration window) {
+
+        try {
+            return redisService.isAllowed(key, maxRequests, window);
+        } catch (DataAccessException exception) {
+
+            log.warn("Redis unavailable, WebSocket rate limit check skipped: key={}",
+                    key, exception);
+            return true;
         }
     }
 }

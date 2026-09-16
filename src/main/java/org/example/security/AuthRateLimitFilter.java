@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.configuration.metrics.service.ApplicationMetricsService;
 import org.example.security.audit.SecurityAuditService;
 import org.example.service.RedisService;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -65,7 +66,7 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
 
         String key = "ratelimit:auth:" + path + ":" + ip;
 
-        if (!redisService.isAllowed(key, limit, window)) {
+        if (!isAllowedFailOpen(key, limit, window, path)) {
 
             securityAuditService.rateLimitExceeded(ip, path);
             metricsService.incrementRateLimitExceeded(path);
@@ -76,6 +77,17 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private boolean isAllowedFailOpen(String key, int limit, Duration window, String path) {
+
+        try {
+            return redisService.isAllowed(key, limit, window);
+        } catch (DataAccessException exception) {
+
+            log.warn("Redis unavailable, rate limit check skipped: path={}", path, exception);
+            return true;
+        }
     }
 
     private void sendTooManyRequestsResponse(HttpServletResponse response) throws IOException {
