@@ -47,7 +47,8 @@ public class SecurityAccessConfiguration {
                                                 "/stomp-test.html",
                                                 "/sw.js",
                                                 "/uploads/**",
-                                                "/actuator/health"
+                                                "/actuator/health",
+                                                "/actuator/prometheus"
                                         )
                                         .permitAll()
                                         .anyRequest()
