@@ -230,6 +230,7 @@ JPQL joins return correct rows against a real database.
 - [**Overview & features**](docs/01-overview.md) — what the project does, quick start, how to run the tests
 - [**Architecture**](docs/02-architecture.md) — authentication flows, message delivery pipeline, concurrency patterns, data model
 - [**Tech stack**](docs/03-tech-stack.md) — every technology used, and why
+- [**Production hardening**](docs/04-production-hardening.md) — six reliability fixes: fail-open rate limiting, upload validation, refresh tokens, and why each one was needed
 
 ## 📐 Diagrams
 
