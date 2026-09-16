@@ -119,7 +119,9 @@ are rejected, logout deletes the stored token),
 `AuthenticationControllerTest` (the three `/auth/*` endpoints end-to-end
 through validation and `GlobalExceptionHandler`).
 
-**Known, deliberate scope cut:** `stomp-test.html` still only exercises
-`/auth/authentication` and stores a single `token`. Wiring the manual test
-client to call `/auth/refresh` on expiry is a small, isolated follow-up -
-not done here to keep this change to the backend contract itself.
+`stomp-test.html` is wired to the same contract: it stores both `token` and
+`refreshToken` on login, transparently retries once through `/auth/refresh`
+on a `401`, and has explicit "Refresh Token" / "Logout" buttons. The one
+remaining scope cut is the avatar/group-avatar upload calls, which use a raw
+`fetch` outside the shared `apiFetch` helper and so don't auto-retry on
+expiry - a manual "Refresh Token" click before retrying covers it.
